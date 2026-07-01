@@ -956,8 +956,8 @@ function renderLoading() {
       return { from: new Date(t), to: new Date(t) };
     }
 
-    let state = { preset: 'thisMonth', from: null, to: null, days: 0 };
-    { const r = presetRange('thisMonth'); state.from = r.from; state.to = r.to; }
+    let state = { preset: 'thisWeek', from: null, to: null, days: 0 };
+    { const r = presetRange('thisWeek'); state.from = r.from; state.to = r.to; }
 
     function aggregate(from, to) {
       const f = iso(from), tISO = iso(to);
@@ -1003,7 +1003,7 @@ function renderLoading() {
       return { weeks, metWeeks, perPerson: metWeeks * WEEKLY_BONUS, teamTotal: metWeeks * WEEKLY_BONUS * ROSTER.length };
     }
 
-    const PRESETS = [['today', 'Today'], ['thisWeek', 'This Week'], ['lastWeek', 'Last Week'], ['thisMonth', 'This Month'], ['lastMonth', 'Last Month']];
+    const PRESETS = [['thisWeek', 'This Week'], ['lastWeek', 'Last Week']];
 
     function renderFilterBar() {
       const pills = PRESETS.map(([k, l]) => `<button class="gs-pill${state.preset === k ? ' active' : ''}" data-preset="${k}">${l}</button>`).join('');
