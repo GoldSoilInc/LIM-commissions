@@ -920,9 +920,9 @@ function renderLoading() {
     const WEEKLY_GATE = 'warm_transfers';   // 'warm_transfers' or 'prequalified' — which metric must clear members/600
     const DATE_SHIFT_DAYS = 0;              // Date fix now handled in the sheet (CT column). Set to 1 only if reverting to the card-side shift.
     // Column indexes (0-based). Adjust only if a tab's layout changes.
-    const CM_DATE = 0, CM_OWNER = 1, CM_MEMBERS = 3;          // Campaign Members
-    const WT_DATE = 0, WT_TEXT = 1, WT_PHONE = 2;             // Warm Transfers
-    const PQ_DATE = 0, PQ_TEXT = 3, PQ_PHONE = 4;            // PreQualified: A Date | D Sourcer (Text) | E Sourcer (Phone)
+    const CM_DATE = 1, CM_OWNER = 2, CM_MEMBERS = 4;          // Campaign Members: B Start Date (CT) | C Owner | E Actual Campaign Members
+    const WT_DATE = 1, WT_TEXT = 2, WT_PHONE = 3;             // Warm Transfers: B Created Date (CT) | C Sourcer (Text) | D Sourcer (Phone)
+    const PQ_DATE = 1, PQ_TEXT = 4, PQ_PHONE = 5;            // PreQualified: B Date Pre-Qualified (CT) | E Sourcer (Text) | F Sourcer (Phone)
 
     let CAMPAIGN_ROWS = [], TRANSFER_ROWS = [], PREQUAL_ROWS = [];
 
