@@ -872,6 +872,11 @@ function renderLoading() {
   </script>
   <style>
     body { background:#e9e6dd; padding:24px; }
+    /* Commission dashboard needs a wider card for the 10-column By Sourcer table */
+    .card { max-width: 1180px !important; }
+    table th, table td { padding: 7px 8px !important; font-size: 12px; }
+    table th { font-size: 10px; }
+    .section { overflow-x: auto; }
     /* Commission-only: date-filter bar replaces the 5x-daily time strip */
     .gs-filter { background: var(--gs-cream); padding: 12px 24px; border-bottom: 0.5px solid var(--gs-border); }
     .gs-filter-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
@@ -1068,35 +1073,43 @@ function renderLoading() {
       });
       const teamTotal = teamBase + wb.teamTotal + starBonusTotal;
 
+      // One row per (Sourcer Text -> Sourcer Phone) pairing. Person-level columns
+      // (members, warm transfers, ratio, bonus, star) show on the person's first row only;
+      // pre-qualify $ per row = text person's text-rate + phone person's call-rate, x that pairing's count.
       const rows = names.map(n => {
         const p = a.people[n] || { members: 0, warmT: 0, warmTPhone: 0, pqText: 0, pqPhone: 0, phones: {} };
         const isStar = n === star.name && star.count > 0;
-        const { tier, payBase } = pay[n];
+        const tier = pay[n].tier;
         const bonus = wb.perPerson + (isStar ? STAR_BONUS : 0);
-        const total = payBase + bonus;
         const ratioLabel = tier.ratio === null ? '\u2014' : Math.round(tier.ratio).toLocaleString('en-US');
-        const tierLabel = tier.label === '\u2014' ? '\u2014' : `${tier.label} \u00b7 $${tier.text}/$${tier.call}`;
-        const phoneKeys = Object.keys(p.phones);
-        let phoneLabel = n, mismatch = false;
-        if (p.pqText === 0 && p.pqPhone === 0) { phoneLabel = ROSTER.includes(n) ? n : '\u2014'; }
-        else if (phoneKeys.length === 1 && phoneKeys[0] === n) { phoneLabel = n; }
-        else if (phoneKeys.length === 0) { phoneLabel = '\u2014'; }
-        else { mismatch = true; phoneLabel = phoneKeys.map(k => `${k}${p.phones[k] > 1 ? ' (' + p.phones[k] + ')' : ''}`).join(', '); }
         const textLabel = (ROSTER.includes(n) || p.members > 0 || p.warmTPhone > 0 || p.pqText > 0) ? n : '\u2014';
-        let rowStyle = ''; if (isStar) rowStyle = ' style="background:#EBD88C;"'; else if (mismatch) rowStyle = ' style="background:#FBF3E3;"';
-        const starTag = isStar ? ' <span style="display:inline-block;padding:1px 7px;border-radius:9px;background:var(--gs-dark-green);color:var(--gs-gold);font-family:var(--font-body);font-size:9px;font-weight:bold;letter-spacing:0.5px;vertical-align:1px;">\u2605 STAR +$50</span>' : '';
-        return `<tr${rowStyle}>
-          <td class="label"${isStar ? ' style="font-weight:bold;color:var(--gs-dark-green);"' : ''}>${textLabel}${starTag}</td>
-          <td class="label">${phoneLabel}</td>
-          <td class="num">${p.members.toLocaleString('en-US')}</td>
-          <td class="num">${p.warmTPhone}</td>
-          <td class="num">${ratioLabel}</td>
-          <td class="num" style="font-size:10px;">${tierLabel}</td>
-          <td class="num highlight">${p.pqText}</td>
-          <td class="num">${fmtUSD(payBase)}</td>
-          <td class="num">${fmtUSD(bonus)}</td>
-          <td class="num gold">${fmtUSD(total)}</td>
-        </tr>`;
+
+        // Build the pairing list: sorted with self first, then by count desc.
+        let pairings = Object.entries(p.phones);
+        if (pairings.length === 0) pairings = [[ROSTER.includes(n) ? n : '\u2014', 0]];
+        pairings.sort((x, y) => (x[0] === n ? -1 : y[0] === n ? 1 : y[1] - x[1]));
+
+        return pairings.map(([phoneName, c], idx) => {
+          const first = idx === 0;
+          const phoneTier = (pay[phoneName] && pay[phoneName].tier) ? pay[phoneName].tier : tierFor(0, 0);
+          const rowPay = tier.text * c + phoneTier.call * c;      // text portion (this person) + call portion (phone person)
+          const rowBonus = first ? bonus : 0;
+          const rowTotal = rowPay + rowBonus;
+          const mismatch = phoneName !== n && phoneName !== '\u2014';
+          let rowStyle = ''; if (isStar && first) rowStyle = ' style="background:#EBD88C;"'; else if (mismatch) rowStyle = ' style="background:#FBF3E3;"';
+          const starTag = (isStar && first) ? ' <span style="display:inline-block;padding:1px 7px;border-radius:9px;background:var(--gs-dark-green);color:var(--gs-gold);font-family:var(--font-body);font-size:9px;font-weight:bold;letter-spacing:0.5px;vertical-align:1px;">\u2605 STAR +$50</span>' : '';
+          return `<tr${rowStyle}>
+            <td class="label"${isStar && first ? ' style="font-weight:bold;color:var(--gs-dark-green);"' : ''}>${textLabel}${starTag}</td>
+            <td class="label">${phoneName}</td>
+            <td class="num">${first ? p.members.toLocaleString('en-US') : ''}</td>
+            <td class="num">${first ? p.warmTPhone : ''}</td>
+            <td class="num">${first ? ratioLabel : ''}</td>
+            <td class="num highlight">${c}</td>
+            <td class="num">${fmtUSD(rowPay)}</td>
+            <td class="num">${first ? fmtUSD(rowBonus) : ''}</td>
+            <td class="num gold">${fmtUSD(rowTotal)}</td>
+          </tr>`;
+        }).join('');
       }).join('');
 
       const weekChips = wb.weeks.map(w => {
@@ -1147,7 +1160,7 @@ function renderLoading() {
               <tr>
                 <th>SOURCER (TEXT)</th><th>SOURCER (PHONE)</th>
                 <th class="num">MEMBERS</th><th class="num">WARM TRANSFERS</th>
-                <th class="num">RATIO</th><th class="num">TIER</th>
+                <th class="num">RATIO</th>
                 <th class="num">PRE-QUALIFIED</th><th class="num">PRE-QUALIFY $</th>
                 <th class="num">BONUS $</th><th class="num">TOTAL $</th>
               </tr>
@@ -1159,7 +1172,6 @@ function renderLoading() {
                 <td class="num">${a.members.toLocaleString('en-US')}</td>
                 <td class="num">${a.warmTransfers}</td>
                 <td class="num">${a.warmTransfers > 0 ? Math.round(a.members / a.warmTransfers).toLocaleString('en-US') : '\u2014'}</td>
-                <td class="num" style="font-size:10px;">${tierFor(a.members, a.warmTransfers).label}</td>
                 <td class="num">${a.prequal}</td>
                 <td class="num">${fmtUSD(teamBase)}</td>
                 <td class="num">${fmtUSD(wb.teamTotal + starBonusTotal)}</td>
@@ -1167,7 +1179,11 @@ function renderLoading() {
               </tr>
             </tbody>
           </table>
-          <div style="font-family:var(--font-body); font-size:10px; color:var(--gs-faint); margin-top:8px;">Tier set per person by Ratio = campaign members \u00f7 warm transfers (by phone): \u2264500 = $1/$3, 501\u2013600 = $1/$2, 601\u2013750 = $0.50/$1, &gt;750 = $0. Pre-Qualify $ pays each pre-qualified lead at that tier \u2014 Payout/Text to Sourcer (Text), Payout/Call to Sourcer (Phone). Bonus $ = weekly team bonus + $50 for the period's Star. Highlighted rows = text and phone sourcer differ.</div>
+          <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-top:12px;">
+            <span style="font-family:var(--font-display); font-size:10px; font-weight:bold; letter-spacing:1px; color:var(--gs-gold);">PAYOUT TIERS \u00b7 leads per warm transfer</span>
+            ${TIERS.map(t => `<span style="font-family:var(--font-body); font-size:11px; padding:3px 10px; border-radius:12px; background:var(--gs-cream); border:0.5px solid var(--gs-border-soft); color:var(--gs-dark-green);"><b>${t.label}</b> &rarr; ${t.text || t.call ? '$' + t.text + ' / $' + t.call : '$0'}</span>`).join('')}
+          </div>
+          <div style="font-family:var(--font-body); font-size:10px; color:var(--gs-faint); margin-top:8px;">Ratio = campaign members \u00f7 warm transfers (by phone), per person. Pre-Qualify $ pays each pre-qualified lead at that person's tier \u2014 first number to Sourcer (Text), second to Sourcer (Phone). Bonus $ = weekly team bonus + $50 for the period's Star. Highlighted rows = text and phone sourcer differ.</div>
         </div>
 
         ${renderFooter()}
