@@ -1038,11 +1038,11 @@ function renderLoading() {
         const total = payBase + bonus;
         const phoneKeys = Object.keys(p.phones);
         let phoneLabel = n, mismatch = false;
-        if (p.pqText === 0 && p.pqPhone === 0) { phoneLabel = '\u2014'; }
+        if (p.pqText === 0 && p.pqPhone === 0) { phoneLabel = ROSTER.includes(n) ? n : '\u2014'; }
         else if (phoneKeys.length === 1 && phoneKeys[0] === n) { phoneLabel = n; }
         else if (phoneKeys.length === 0) { phoneLabel = '\u2014'; }
         else { mismatch = true; phoneLabel = phoneKeys.map(k => `${k}${p.phones[k] > 1 ? ' (' + p.phones[k] + ')' : ''}`).join(', '); }
-        const textLabel = (p.members > 0 || p.warmT > 0 || p.pqText > 0) ? n : '\u2014';
+        const textLabel = (ROSTER.includes(n) || p.members > 0 || p.warmT > 0 || p.pqText > 0) ? n : '\u2014';
         let rowStyle = ''; if (isStar) rowStyle = ' style="background:#EBD88C;"'; else if (mismatch) rowStyle = ' style="background:#FBF3E3;"';
         const starTag = isStar ? ' <span style="display:inline-block;padding:1px 7px;border-radius:9px;background:var(--gs-dark-green);color:var(--gs-gold);font-family:var(--font-body);font-size:9px;font-weight:bold;letter-spacing:0.5px;vertical-align:1px;">\u2605 STAR +$50</span>' : '';
         return `<tr${rowStyle}>
