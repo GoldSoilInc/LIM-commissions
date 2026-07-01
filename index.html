@@ -985,7 +985,7 @@ function renderLoading() {
     function aggregate(from, to) {
       const f = iso(from), tISO = iso(to);
       const people = {};
-      const ensure = (n) => { if (!people[n]) people[n] = { members: 0, warmT: 0, warmTPhone: 0, pqText: 0, pqPhone: 0, phones: {} }; return people[n]; };
+      const ensure = (n) => { if (!people[n]) people[n] = { members: 0, warmT: 0, warmTPhone: 0, pqText: 0, pqPhone: 0, phones: {}, texts: {} }; return people[n]; };
       let members = 0, warmTransfers = 0, prequal = 0;
       const dayset = new Set();
 
@@ -1007,7 +1007,9 @@ function renderLoading() {
         const tx = (r[PQ_TEXT] || '').trim(); const ph = (r[PQ_PHONE] || '').trim() || tx; const dt = normDate(r[PQ_DATE], PQ_SHIFT);
         if (!tx || dt < f || dt > tISO) continue;
         const p = ensure(tx); p.pqText += 1; ensure(ph).pqPhone += 1;
-        p.phones[ph] = (p.phones[ph] || 0) + 1; prequal += 1; dayset.add(dt);
+        p.phones[ph] = (p.phones[ph] || 0) + 1;      // texter -> callers
+        ensure(ph).texts[tx] = (ensure(ph).texts[tx] || 0) + 1;   // caller -> texters
+        prequal += 1; dayset.add(dt);
       }
       return { members, warmTransfers, prequal, days: dayset.size, target: Math.round(members / 600), people };
     }
@@ -1055,7 +1057,7 @@ function renderLoading() {
       const wb = weeklyBonus(state.from, state.to);
 
       let star = { name: '\u2014', count: 0 };
-      Object.keys(a.people).forEach(n => { if (a.people[n].pqText > star.count) star = { name: n, count: a.people[n].pqText }; });
+      Object.keys(a.people).forEach(n => { if (a.people[n].pqPhone > star.count) star = { name: n, count: a.people[n].pqPhone }; });
       const starBonusTotal = star.count > 0 ? STAR_BONUS : 0;
 
       const names = [...ROSTER];
@@ -1073,44 +1075,41 @@ function renderLoading() {
       });
       const teamTotal = teamBase + wb.teamTotal + starBonusTotal;
 
-      // One row per (Sourcer Text -> Sourcer Phone) pairing. Person-level columns
-      // (members, warm transfers, ratio, bonus, star) show on the person's first row only;
-      // pre-qualify $ per row = text person's text-rate + phone person's call-rate, x that pairing's count.
+      // One row per caller (Sourcer Phone). Text column stacks the texters whose leads
+      // this caller pre-qualified. $ columns show the caller's full paycheck (text + call earnings).
       const rows = names.map(n => {
-        const p = a.people[n] || { members: 0, warmT: 0, warmTPhone: 0, pqText: 0, pqPhone: 0, phones: {} };
+        const p = a.people[n] || { members: 0, warmT: 0, warmTPhone: 0, pqText: 0, pqPhone: 0, phones: {}, texts: {} };
         const isStar = n === star.name && star.count > 0;
         const tier = pay[n].tier;
-        const bonus = wb.perPerson + (isStar ? STAR_BONUS : 0);
+        const payBase = pay[n].payBase;                 // full paycheck: text earnings + call earnings
+        const weekly = wb.perPerson;
+        const starPay = isStar ? STAR_BONUS : 0;
+        const total = payBase + weekly + starPay;
         const ratioLabel = tier.ratio === null ? '\u2014' : Math.round(tier.ratio).toLocaleString('en-US');
-        const textLabel = (ROSTER.includes(n) || p.members > 0 || p.warmTPhone > 0 || p.pqText > 0) ? n : '\u2014';
+        const hasActivity = ROSTER.includes(n) || p.members > 0 || p.warmTPhone > 0 || p.pqPhone > 0 || p.pqText > 0;
 
-        // Build the pairing list: sorted with self first, then by count desc.
-        let pairings = Object.entries(p.phones);
-        if (pairings.length === 0) pairings = [[ROSTER.includes(n) ? n : '\u2014', 0]];
-        pairings.sort((x, y) => (x[0] === n ? -1 : y[0] === n ? 1 : y[1] - x[1]));
+        // Texters whose leads this caller pre-qualified (stacked, self first). Fallback to self.
+        let textEntries = Object.entries(p.texts);
+        textEntries.sort((x, y) => (x[0] === n ? -1 : y[0] === n ? 1 : y[1] - x[1]));
+        const mismatch = textEntries.some(([t]) => t !== n);
+        const textCell = textEntries.length === 0
+          ? (hasActivity ? n : '\u2014')
+          : textEntries.map(([t, c]) => `${t}${c > 1 ? ' <span style="color:var(--gs-faint);">(' + c + ')</span>' : ''}`).join('<br>');
 
-        return pairings.map(([phoneName, c], idx) => {
-          const first = idx === 0;
-          const phoneTier = (pay[phoneName] && pay[phoneName].tier) ? pay[phoneName].tier : tierFor(0, 0);
-          const rowPay = tier.text * c + phoneTier.call * c;      // text portion (this person) + call portion (phone person)
-          const rowBonus = first ? bonus : 0;
-          const rowTotal = rowPay + rowBonus;
-          const mismatch = phoneName !== n && phoneName !== '\u2014';
-          let rowStyle = ''; if (isStar && first) rowStyle = ' style="background:#EBD88C;"'; else if (mismatch) rowStyle = ' style="background:#FBF3E3;"';
-          const starTag = (isStar && first) ? ' <span style="display:inline-block;padding:1px 7px;border-radius:9px;background:var(--gs-dark-green);color:var(--gs-gold);font-family:var(--font-body);font-size:9px;font-weight:bold;letter-spacing:0.5px;vertical-align:1px;">\u2605 STAR +$50</span>' : '';
-          return `<tr${rowStyle}>
-            <td class="label">${phoneName}</td>
-            <td class="label"${isStar && first ? ' style="font-weight:bold;color:var(--gs-dark-green);"' : ''}>${textLabel}${starTag}</td>
-            <td class="num">${first ? p.members.toLocaleString('en-US') : ''}</td>
-            <td class="num">${first ? p.warmTPhone : ''}</td>
-            <td class="num">${first ? ratioLabel : ''}</td>
-            <td class="num highlight">${c}</td>
-            <td class="num">${fmtUSD(rowPay)}</td>
-            <td class="num">${first ? fmtUSD(wb.perPerson) : ''}</td>
-            <td class="num">${first ? fmtUSD(isStar ? STAR_BONUS : 0) : ''}</td>
-            <td class="num gold">${fmtUSD(rowTotal)}</td>
-          </tr>`;
-        }).join('');
+        let rowStyle = ''; if (isStar) rowStyle = ' style="background:#EBD88C;"'; else if (mismatch) rowStyle = ' style="background:#FBF3E3;"';
+        const starTag = isStar ? ' <span style="display:inline-block;padding:1px 7px;border-radius:9px;background:var(--gs-dark-green);color:var(--gs-gold);font-family:var(--font-body);font-size:9px;font-weight:bold;letter-spacing:0.5px;vertical-align:1px;">\u2605 STAR +$50</span>' : '';
+        return `<tr${rowStyle}>
+          <td class="label"${isStar ? ' style="font-weight:bold;color:var(--gs-dark-green);"' : ''}>${hasActivity ? n : '\u2014'}${starTag}</td>
+          <td class="label">${textCell}</td>
+          <td class="num">${p.members.toLocaleString('en-US')}</td>
+          <td class="num">${p.warmTPhone}</td>
+          <td class="num">${ratioLabel}</td>
+          <td class="num highlight">${p.pqPhone}</td>
+          <td class="num">${fmtUSD(payBase)}</td>
+          <td class="num">${fmtUSD(weekly)}</td>
+          <td class="num">${fmtUSD(starPay)}</td>
+          <td class="num gold">${fmtUSD(total)}</td>
+        </tr>`;
       }).join('');
 
       const weekChips = wb.weeks.map(w => {
@@ -1185,7 +1184,7 @@ function renderLoading() {
             <span style="font-family:var(--font-display); font-size:10px; font-weight:bold; letter-spacing:1px; color:var(--gs-gold);">PAYOUT TIERS \u00b7 leads per warm transfer</span>
             ${TIERS.map(t => `<span style="font-family:var(--font-body); font-size:11px; padding:3px 10px; border-radius:12px; background:var(--gs-cream); border:0.5px solid var(--gs-border-soft); color:var(--gs-dark-green);"><b>${t.label}</b> &rarr; ${t.text || t.call ? '$' + t.text + ' / $' + t.call : '$0'}</span>`).join('')}
           </div>
-          <div style="font-family:var(--font-body); font-size:10px; color:var(--gs-faint); margin-top:8px;">Ratio = campaign members \u00f7 warm transfers (by phone), per person. Pre-Qualify $ pays each pre-qualified lead at that person's tier \u2014 first number to Sourcer (Text), second to Sourcer (Phone). Weekly Bonus $ = $15 per person for each week the team hits its goal. Star $ = $50 to the period's top pre-qualifier. Highlighted rows = text and phone sourcer differ.</div>
+          <div style="font-family:var(--font-body); font-size:10px; color:var(--gs-faint); margin-top:8px;">Each row = a caller (Sourcer Phone); the Text column lists the texter(s) whose leads that caller pre-qualified. Pre-Qualified = leads this caller pre-qualified. Ratio = campaign members \u00f7 warm transfers (by phone), setting the tier. Pre-Qualify $ = the person's full pay (text-rate on leads they texted + call-rate on leads they pre-qualified). Weekly Bonus $ = $15 per person for each week the team hits its goal. Star $ = $50 to the period's top pre-qualifier. Highlighted rows = caller and texter differ.</div>
         </div>
 
         ${renderFooter()}
