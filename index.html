@@ -921,7 +921,7 @@ function renderLoading() {
     // Column indexes (0-based). Adjust only if a tab's layout changes.
     const CM_DATE = 0, CM_OWNER = 1, CM_MEMBERS = 3;          // Campaign Members
     const WT_DATE = 0, WT_TEXT = 1, WT_PHONE = 2;             // Warm Transfers
-    const PQ_DATE = 0, PQ_TEXT = 1, PQ_PHONE = 2;             // PreQualified (assumed same shape as Warm Transfers)
+    const PQ_DATE = 0, PQ_TEXT = 3, PQ_PHONE = 4;            // PreQualified: A Date | D Sourcer (Text) | E Sourcer (Phone)
 
     let CAMPAIGN_ROWS = [], TRANSFER_ROWS = [], PREQUAL_ROWS = [];
 
