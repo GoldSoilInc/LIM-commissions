@@ -1099,14 +1099,15 @@ function renderLoading() {
           let rowStyle = ''; if (isStar && first) rowStyle = ' style="background:#EBD88C;"'; else if (mismatch) rowStyle = ' style="background:#FBF3E3;"';
           const starTag = (isStar && first) ? ' <span style="display:inline-block;padding:1px 7px;border-radius:9px;background:var(--gs-dark-green);color:var(--gs-gold);font-family:var(--font-body);font-size:9px;font-weight:bold;letter-spacing:0.5px;vertical-align:1px;">\u2605 STAR +$50</span>' : '';
           return `<tr${rowStyle}>
-            <td class="label"${isStar && first ? ' style="font-weight:bold;color:var(--gs-dark-green);"' : ''}>${textLabel}${starTag}</td>
             <td class="label">${phoneName}</td>
+            <td class="label"${isStar && first ? ' style="font-weight:bold;color:var(--gs-dark-green);"' : ''}>${textLabel}${starTag}</td>
             <td class="num">${first ? p.members.toLocaleString('en-US') : ''}</td>
             <td class="num">${first ? p.warmTPhone : ''}</td>
             <td class="num">${first ? ratioLabel : ''}</td>
             <td class="num highlight">${c}</td>
             <td class="num">${fmtUSD(rowPay)}</td>
-            <td class="num">${first ? fmtUSD(rowBonus) : ''}</td>
+            <td class="num">${first ? fmtUSD(wb.perPerson) : ''}</td>
+            <td class="num">${first ? fmtUSD(isStar ? STAR_BONUS : 0) : ''}</td>
             <td class="num gold">${fmtUSD(rowTotal)}</td>
           </tr>`;
         }).join('');
@@ -1158,11 +1159,11 @@ function renderLoading() {
           <table>
             <thead>
               <tr>
-                <th>SOURCER (TEXT)</th><th>SOURCER (PHONE)</th>
+                <th>SOURCER (PHONE)</th><th>SOURCER (TEXT)</th>
                 <th class="num">MEMBERS</th><th class="num">WARM TRANSFERS</th>
                 <th class="num">RATIO</th>
                 <th class="num">PRE-QUALIFIED</th><th class="num">PRE-QUALIFY $</th>
-                <th class="num">BONUS $</th><th class="num">TOTAL $</th>
+                <th class="num">WEEKLY BONUS $</th><th class="num">STAR $</th><th class="num">TOTAL $</th>
               </tr>
             </thead>
             <tbody>
@@ -1174,7 +1175,8 @@ function renderLoading() {
                 <td class="num">${a.warmTransfers > 0 ? Math.round(a.members / a.warmTransfers).toLocaleString('en-US') : '\u2014'}</td>
                 <td class="num">${a.prequal}</td>
                 <td class="num">${fmtUSD(teamBase)}</td>
-                <td class="num">${fmtUSD(wb.teamTotal + starBonusTotal)}</td>
+                <td class="num">${fmtUSD(wb.teamTotal)}</td>
+                <td class="num">${fmtUSD(starBonusTotal)}</td>
                 <td class="num">${fmtUSD(teamTotal)}</td>
               </tr>
             </tbody>
@@ -1183,7 +1185,7 @@ function renderLoading() {
             <span style="font-family:var(--font-display); font-size:10px; font-weight:bold; letter-spacing:1px; color:var(--gs-gold);">PAYOUT TIERS \u00b7 leads per warm transfer</span>
             ${TIERS.map(t => `<span style="font-family:var(--font-body); font-size:11px; padding:3px 10px; border-radius:12px; background:var(--gs-cream); border:0.5px solid var(--gs-border-soft); color:var(--gs-dark-green);"><b>${t.label}</b> &rarr; ${t.text || t.call ? '$' + t.text + ' / $' + t.call : '$0'}</span>`).join('')}
           </div>
-          <div style="font-family:var(--font-body); font-size:10px; color:var(--gs-faint); margin-top:8px;">Ratio = campaign members \u00f7 warm transfers (by phone), per person. Pre-Qualify $ pays each pre-qualified lead at that person's tier \u2014 first number to Sourcer (Text), second to Sourcer (Phone). Bonus $ = weekly team bonus + $50 for the period's Star. Highlighted rows = text and phone sourcer differ.</div>
+          <div style="font-family:var(--font-body); font-size:10px; color:var(--gs-faint); margin-top:8px;">Ratio = campaign members \u00f7 warm transfers (by phone), per person. Pre-Qualify $ pays each pre-qualified lead at that person's tier \u2014 first number to Sourcer (Text), second to Sourcer (Phone). Weekly Bonus $ = $15 per person for each week the team hits its goal. Star $ = $50 to the period's top pre-qualifier. Highlighted rows = text and phone sourcer differ.</div>
         </div>
 
         ${renderFooter()}
