@@ -1075,41 +1075,46 @@ function renderLoading() {
       });
       const teamTotal = teamBase + wb.teamTotal + starBonusTotal;
 
-      // One row per caller (Sourcer Phone). Text column stacks the texters whose leads
-      // this caller pre-qualified. $ columns show the caller's full paycheck (text + call earnings).
+      // Grouped by caller (Sourcer Phone); one row per texter whose leads that caller pre-qualified.
+      // Caller-level cells (Members, Warm Transfers, Ratio, Weekly, Star) show on the caller's first row only.
+      // Each texter row shows its own Pre-Qualified count and $ (call-rate to caller + text-rate to texter).
       const rows = names.map(n => {
         const p = a.people[n] || { members: 0, warmT: 0, warmTPhone: 0, pqText: 0, pqPhone: 0, phones: {}, texts: {} };
         const isStar = n === star.name && star.count > 0;
-        const tier = pay[n].tier;
-        const payBase = pay[n].payBase;                 // full paycheck: text earnings + call earnings
+        const tier = pay[n].tier;                          // caller's tier (call rate)
         const weekly = wb.perPerson;
         const starPay = isStar ? STAR_BONUS : 0;
-        const total = payBase + weekly + starPay;
         const ratioLabel = tier.ratio === null ? '\u2014' : Math.round(tier.ratio).toLocaleString('en-US');
         const hasActivity = ROSTER.includes(n) || p.members > 0 || p.warmTPhone > 0 || p.pqPhone > 0 || p.pqText > 0;
 
-        // Texters whose leads this caller pre-qualified (stacked, self first). Fallback to self.
         let textEntries = Object.entries(p.texts);
         textEntries.sort((x, y) => (x[0] === n ? -1 : y[0] === n ? 1 : y[1] - x[1]));
-        const mismatch = textEntries.some(([t]) => t !== n);
-        const textCell = textEntries.length === 0
-          ? (hasActivity ? n : '\u2014')
-          : textEntries.map(([t, c]) => `${t}${c > 1 ? ' <span style="color:var(--gs-faint);">(' + c + ')</span>' : ''}`).join('<br>');
+        if (textEntries.length === 0) textEntries = [[hasActivity ? n : '\u2014', 0]];
 
-        let rowStyle = ''; if (isStar) rowStyle = ' style="background:#EBD88C;"'; else if (mismatch) rowStyle = ' style="background:#FBF3E3;"';
         const starTag = isStar ? ' <span style="display:inline-block;padding:1px 7px;border-radius:9px;background:var(--gs-dark-green);color:var(--gs-gold);font-family:var(--font-body);font-size:9px;font-weight:bold;letter-spacing:0.5px;vertical-align:1px;">\u2605 STAR +$50</span>' : '';
-        return `<tr${rowStyle}>
-          <td class="label"${isStar ? ' style="font-weight:bold;color:var(--gs-dark-green);"' : ''}>${hasActivity ? n : '\u2014'}${starTag}</td>
-          <td class="label">${textCell}</td>
-          <td class="num">${p.members.toLocaleString('en-US')}</td>
-          <td class="num">${p.warmTPhone}</td>
-          <td class="num">${ratioLabel}</td>
-          <td class="num highlight">${p.pqPhone}</td>
-          <td class="num">${fmtUSD(payBase)}</td>
-          <td class="num">${fmtUSD(weekly)}</td>
-          <td class="num">${fmtUSD(starPay)}</td>
-          <td class="num gold">${fmtUSD(total)}</td>
-        </tr>`;
+
+        return textEntries.map(([t, c], idx) => {
+          const first = idx === 0;
+          const textTier = (pay[t] && pay[t].tier) ? pay[t].tier : tierFor(0, 0);
+          const rowPay = c * (tier.call + textTier.text);   // call-rate to caller + text-rate to texter, for these leads
+          const rowTotal = rowPay + (first ? (weekly + starPay) : 0);
+          const mismatch = t !== n && t !== '\u2014';
+          let rowStyle = ''; if (isStar && first) rowStyle = ' style="background:#EBD88C;"'; else if (mismatch) rowStyle = ' style="background:#FBF3E3;"';
+          // Bottom border only on the last row of a caller group, so groups read as blocks.
+          const groupEdge = idx === textEntries.length - 1 ? '' : ' style="border-bottom:1px dashed var(--gs-border-soft);"';
+          return `<tr${rowStyle}>
+            <td class="label"${isStar && first ? ' style="font-weight:bold;color:var(--gs-dark-green);"' : ''}>${first ? (hasActivity ? n : '\u2014') : ''}${first ? starTag : ''}</td>
+            <td class="label">${t}</td>
+            <td class="num">${first ? p.members.toLocaleString('en-US') : ''}</td>
+            <td class="num">${first ? p.warmTPhone : ''}</td>
+            <td class="num">${first ? ratioLabel : ''}</td>
+            <td class="num highlight">${c}</td>
+            <td class="num">${fmtUSD(rowPay)}</td>
+            <td class="num">${first ? fmtUSD(weekly) : ''}</td>
+            <td class="num">${first ? fmtUSD(starPay) : ''}</td>
+            <td class="num gold">${fmtUSD(rowTotal)}</td>
+          </tr>`;
+        }).join('');
       }).join('');
 
       const weekChips = wb.weeks.map(w => {
