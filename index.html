@@ -919,6 +919,8 @@ function renderLoading() {
     const TEAM_LEAD = "Juan";
 
     const ROSTER = ['Ahmed Abdelbaset', 'Juan Pablo Larrea', 'Martina Misheal', 'Maryam Selim', 'Mina Kamal', 'Nada Ahmed'];
+    const MANAGER = 'Juan Pablo Larrea';   // earns a manager override + is gated on team quota
+    const OVERRIDE_RATE = 0.15;            // 15% of the other reps' pre-qualify pay
 
     // ---- Tunables (change here, no other edits needed) ----
     const WEEKLY_BONUS = 15, STAR_BONUS = 50;
@@ -1075,6 +1077,15 @@ function renderLoading() {
       });
       const teamTotal = teamBase + wb.teamTotal + starBonusTotal;
 
+      // Manager pay (Juan): 15% override on the OTHER reps' pre-qualify pay; both his own
+      // commission and the override are gated — they unlock only when the team hits weekly quota.
+      const mgrOwn = pay[MANAGER] ? pay[MANAGER].payBase : 0;
+      const othersProd = teamBase - mgrOwn;
+      const override = othersProd * OVERRIDE_RATE;
+      const teamHitQuota = wb.weeks.length > 0 && wb.weeks.every(w => w.met);
+      const mgrEarned = mgrOwn + override;
+      const mgrPayout = teamHitQuota ? mgrEarned : 0;
+
       // Grouped by caller (Sourcer Phone); one row per texter whose leads that caller pre-qualified.
       // Caller-level cells (Members, Warm Transfers, Ratio, Weekly, Star) show on the caller's first row only.
       // Each texter row shows its own Pre-Qualified count and $ (call-rate to caller + text-rate to texter).
@@ -1190,6 +1201,31 @@ function renderLoading() {
             ${TIERS.map(t => `<span style="font-family:var(--font-body); font-size:11px; padding:3px 10px; border-radius:12px; background:var(--gs-cream); border:0.5px solid var(--gs-border-soft); color:var(--gs-dark-green);"><b>${t.label}</b> &rarr; ${t.text || t.call ? '$' + t.text + ' / $' + t.call : '$0'}</span>`).join('')}
           </div>
           <div style="font-family:var(--font-body); font-size:10px; color:var(--gs-faint); margin-top:8px;">Each row = a caller (Sourcer Phone); the Text column lists the texter(s) whose leads that caller pre-qualified. Pre-Qualified = leads this caller pre-qualified. Ratio = campaign members \u00f7 warm transfers (by phone), setting the tier. Pre-Qualify $ = the person's full pay (text-rate on leads they texted + call-rate on leads they pre-qualified). Weekly Bonus $ = $15 per person for each week the team hits its goal. Star $ = $50 to the period's top pre-qualifier. Highlighted rows = caller and texter differ.</div>
+        </div>
+
+        <div class="section">
+          <h2>MANAGER PAY \u00b7 JUAN</h2>
+          <div style="background:var(--gs-dark-green); border-radius:8px; padding:16px 20px; display:flex; flex-wrap:wrap; align-items:center; gap:22px;">
+            <div>
+              <div style="font-family:var(--font-display); font-size:10px; letter-spacing:1.5px; color:var(--gs-gold); font-weight:bold;">OWN COMMISSION</div>
+              <div style="font-family:var(--font-display); font-size:26px; color:var(--gs-cream); font-weight:bold; line-height:1.1;">${fmtUSD(mgrOwn)}</div>
+              <div style="font-family:var(--font-body); font-size:9px; color:var(--gs-cream); opacity:0.7;">his own pre-qualifies (tiered)</div>
+            </div>
+            <div style="font-family:var(--font-display); font-size:22px; color:var(--gs-gold);">+</div>
+            <div>
+              <div style="font-family:var(--font-display); font-size:10px; letter-spacing:1.5px; color:var(--gs-gold); font-weight:bold;">15% TEAM OVERRIDE</div>
+              <div style="font-family:var(--font-display); font-size:26px; color:var(--gs-cream); font-weight:bold; line-height:1.1;">${fmtUSD(override)}</div>
+              <div style="font-family:var(--font-body); font-size:9px; color:var(--gs-cream); opacity:0.7;">15% of ${fmtUSD(othersProd)} (other reps)</div>
+            </div>
+            <div style="font-family:var(--font-display); font-size:22px; color:var(--gs-gold);">=</div>
+            <div style="flex:1; min-width:180px;">
+              <div style="font-family:var(--font-display); font-size:10px; letter-spacing:1.5px; color:var(--gs-gold); font-weight:bold;">JUAN'S PAYOUT</div>
+              <div style="font-family:var(--font-display); font-size:32px; color:var(--gs-cream); font-weight:bold; line-height:1.1;">${fmtUSD(mgrPayout)}</div>
+              <div style="display:inline-block; margin-top:5px; padding:2px 10px; border-radius:10px; font-family:var(--font-body); font-size:10px; font-weight:bold; letter-spacing:0.5px; background:${teamHitQuota ? 'var(--gs-gold)' : 'var(--gs-cream)'}; color:var(--gs-dark-green); border:${teamHitQuota ? 'none' : '0.5px solid var(--gs-gold)'};">${teamHitQuota ? '\u2713 UNLOCKED \u00b7 team hit quota' : '\uD83D\uDD12 LOCKED \u00b7 team quota not met'}</div>
+              ${!teamHitQuota ? `<div style="font-family:var(--font-body); font-size:9px; color:var(--gs-cream); opacity:0.7; margin-top:3px;">would be ${fmtUSD(mgrEarned)} once the team hits quota</div>` : ''}
+            </div>
+          </div>
+          <div style="font-family:var(--font-body); font-size:10px; color:var(--gs-faint); margin-top:8px;">Override = 15% of the other reps' pre-qualify pay (excludes Juan's own leads). Both Juan's own commission and his override unlock only when the team hits its weekly quota (${teamHitQuota ? 'met' : 'not met'} this period). Weekly bonus and Star, if any, are shown in his row above.</div>
         </div>
 
         ${renderFooter()}
