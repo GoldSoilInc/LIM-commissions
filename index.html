@@ -1108,46 +1108,75 @@ function renderLoading() {
       const mgrEarned = mgrRowTotal + override;
       const mgrPayout = teamHitQuota ? mgrEarned : 0;
 
-      // Grouped by caller (Sourcer Phone); one row per texter whose leads that caller pre-qualified.
-      // Caller-level cells (Members, Warm Transfers, Ratio, Weekly, Star) show on the caller's first row only.
-      // Each texter row shows its own Pre-Qualified count and $ (call-rate to caller + text-rate to texter).
+      // Grouped by person. Each block: a primary (self) row carrying the person's
+      // members/ratio/weekly/star/total, then CALL rows (their call-rate share for leads they
+      // pre-qualified that someone else texted) and TEXT CREDIT rows (their text-rate share for
+      // leads they texted that someone else called). Every block totals the person's true paycheck.
       const rows = names.map(n => {
         const p = a.people[n] || { members: 0, warmT: 0, warmTPhone: 0, pqText: 0, pqPhone: 0, phones: {}, texts: {} };
         const isStar = n === star.name && starActive;
-        const tier = pay[n].tier;                          // caller's tier (call rate)
+        const tier = pay[n].tier;
         const weekly = wb.perPerson;
         const starPay = (isStar && starPayable) ? STAR_BONUS : 0;
+        const personTotal = pay[n].payBase + weekly + starPay;   // full paycheck
         const ratioLabel = tier.ratio === null ? '\u2014' : Math.round(tier.ratio).toLocaleString('en-US');
         const hasActivity = ROSTER.includes(n) || p.members > 0 || p.warmTPhone > 0 || p.pqPhone > 0 || p.pqText > 0;
 
-        let textEntries = Object.entries(p.texts);
-        textEntries.sort((x, y) => (x[0] === n ? -1 : y[0] === n ? 1 : y[1] - x[1]));
-        if (textEntries.length === 0) textEntries = [[hasActivity ? n : '\u2014', 0]];
+        const selfCount = p.texts[n] || 0;                                                    // leads P both texted & called
+        const callRows = Object.entries(p.texts).filter(e => e[0] !== n).sort((x, y) => y[1] - x[1]);   // P called others' texted leads
+        const creditRows = Object.entries(p.phones).filter(e => e[0] !== n).sort((x, y) => y[1] - x[1]); // P texted, others called
 
+        const dash = '<span style="color:#B0AA98;">\u2014</span>';
+        const edge = 'border-bottom:1px solid #EFEADD;';
         const starTag = isStar ? ` <span style="display:inline-block;padding:1px 7px;border-radius:9px;background:var(--gs-dark-green);color:var(--gs-gold);font-family:var(--font-body);font-size:9px;font-weight:bold;letter-spacing:0.5px;vertical-align:1px;">\u2605 STAR${starPayable ? ' +$50' : ' (month leader)'}</span>` : '';
+        const callTag = ` <span style="display:inline-block;padding:1px 6px;border-radius:8px;background:var(--gs-gold);color:var(--gs-dark-green);font-family:var(--font-body);font-size:8.5px;font-weight:bold;vertical-align:1px;">CALL</span>`;
+        const creditTag = ` <span style="display:inline-block;padding:1px 6px;border-radius:8px;background:var(--gs-cream);color:var(--gs-dark-green);border:1px solid var(--gs-gold);font-family:var(--font-body);font-size:8.5px;font-weight:bold;vertical-align:1px;">TEXT CREDIT</span>`;
 
-        return textEntries.map(([t, c], idx) => {
-          const first = idx === 0;
-          const textTier = (pay[t] && pay[t].tier) ? pay[t].tier : tierFor(0, 0);
-          const rowPay = c * (tier.call + textTier.text);   // call-rate to caller + text-rate to texter, for these leads
-          const rowTotal = rowPay + (first ? (weekly + starPay) : 0);
-          const mismatch = t !== n && t !== '\u2014';
-          let rowStyle = ''; if (isStar && first) rowStyle = ' style="background:#EBD88C;"'; else if (mismatch) rowStyle = ' style="background:#FBF3E3;"';
-          // Bottom border only on the last row of a caller group, so groups read as blocks.
-          const groupEdge = idx === textEntries.length - 1 ? '' : ' style="border-bottom:1px dashed var(--gs-border-soft);"';
-          return `<tr${rowStyle}>
-            <td class="label"${isStar && first ? ' style="font-weight:bold;color:var(--gs-dark-green);"' : ''}>${first ? (hasActivity ? n : '\u2014') : ''}${first ? starTag : ''}</td>
-            <td class="label">${t}</td>
-            <td class="num">${first ? p.members.toLocaleString('en-US') : ''}</td>
-            <td class="num">${first ? p.warmTPhone : ''}</td>
-            <td class="num">${first ? ratioLabel : ''}</td>
+        const out = [];
+        // Primary (self) row — person-level cells + block total.
+        out.push(`<tr style="${isStar ? 'background:#EBD88C;' : 'background:#FFFFFF;'}${edge}">
+          <td class="label"${isStar ? ' style="font-weight:bold;color:var(--gs-dark-green);"' : ''}>${hasActivity ? n : '\u2014'}${starTag}</td>
+          <td class="label">${hasActivity ? n : '\u2014'}</td>
+          <td class="num">${p.members.toLocaleString('en-US')}</td>
+          <td class="num">${p.warmTPhone}</td>
+          <td class="num">${ratioLabel}</td>
+          <td class="num highlight">${selfCount}</td>
+          <td class="num">${fmtUSD((tier.text + tier.call) * selfCount)}</td>
+          <td class="num">${fmtUSD(weekly)}</td>
+          <td class="num">${fmtUSD(starPay)}</td>
+          <td class="num gold">${fmtUSD(personTotal)}</td>
+        </tr>`);
+        // CALL rows — P pre-qualified a lead someone else texted → P's call-rate.
+        callRows.forEach(([t, c]) => {
+          out.push(`<tr style="background:#FBF3E3;${edge}">
+            <td class="label">${n}</td>
+            <td class="label">${t}${callTag}</td>
+            <td class="num">${dash}</td>
+            <td class="num">${dash}</td>
+            <td class="num">${dash}</td>
             <td class="num highlight">${c}</td>
-            <td class="num">${fmtUSD(rowPay)}</td>
-            <td class="num">${first ? fmtUSD(weekly) : ''}</td>
-            <td class="num">${first ? fmtUSD(starPay) : ''}</td>
-            <td class="num gold">${fmtUSD(rowTotal)}</td>
-          </tr>`;
-        }).join('');
+            <td class="num">${fmtUSD(tier.call * c)}</td>
+            <td class="num"></td>
+            <td class="num"></td>
+            <td class="num gold"></td>
+          </tr>`);
+        });
+        // TEXT CREDIT rows — P texted a lead someone else called → P's text-rate.
+        creditRows.forEach(([q, c]) => {
+          out.push(`<tr style="background:#FBF3E3;${edge}">
+            <td class="label">${q}</td>
+            <td class="label">${n}${creditTag}</td>
+            <td class="num">${dash}</td>
+            <td class="num">${dash}</td>
+            <td class="num">${dash}</td>
+            <td class="num">${dash}</td>
+            <td class="num">${fmtUSD(tier.text * c)}</td>
+            <td class="num"></td>
+            <td class="num"></td>
+            <td class="num gold"></td>
+          </tr>`);
+        });
+        return out.join('');
       }).join('');
 
       const weekChips = wb.weeks.map(w => {
@@ -1222,7 +1251,7 @@ function renderLoading() {
             <span style="font-family:var(--font-display); font-size:10px; font-weight:bold; letter-spacing:1px; color:var(--gs-gold);">PAYOUT TIERS \u00b7 leads per warm transfer</span>
             ${TIERS.map(t => `<span style="font-family:var(--font-body); font-size:11px; padding:3px 10px; border-radius:12px; background:var(--gs-cream); border:0.5px solid var(--gs-border-soft); color:var(--gs-dark-green);"><b>${t.label}</b> &rarr; ${t.text || t.call ? '$' + t.text + ' / $' + t.call : '$0'}</span>`).join('')}
           </div>
-          <div style="font-family:var(--font-body); font-size:10px; color:var(--gs-faint); margin-top:8px;">Each row = a caller (Sourcer Phone); the Text column lists the texter(s) whose leads that caller pre-qualified. Pre-Qualified = leads this caller pre-qualified. Ratio = campaign members \u00f7 warm transfers (by phone), setting the tier. Pre-Qualify $ = the person's full pay (text-rate on leads they texted + call-rate on leads they pre-qualified). Weekly Bonus $ = $15 per person for each week the team hits its goal. Star $ = $50 to the month's top pre-qualifier (whole month, by week-ownership) \u2014 awarded once, on the last day of the month's last week; shown as a pending badge until then. Highlighted rows = caller and texter differ.</div>
+          <div style="font-family:var(--font-body); font-size:10px; color:var(--gs-faint); margin-top:8px;">Each person's block totals their full paycheck. The primary row = leads they both texted and pre-qualified. A <b>CALL</b> row = their call-rate share for a lead they pre-qualified that someone else texted. A <b>TEXT CREDIT</b> row = their text-rate share for a lead they texted that someone else pre-qualified. Ratio = campaign members \u00f7 warm transfers (by phone), setting each person's tier. Weekly Bonus $ = $15 per person for each week the team hits its goal. Star $ = $50 to the month's top pre-qualifier, awarded once at month close (pending badge until then).</div>
         </div>
 
         <div class="section">
