@@ -1080,10 +1080,12 @@ function renderLoading() {
       // Manager pay (Juan): 15% override on the OTHER reps' pre-qualify pay; both his own
       // commission and the override are gated — they unlock only when the team hits weekly quota.
       const mgrOwn = pay[MANAGER] ? pay[MANAGER].payBase : 0;
+      const mgrIsStar = star.name === MANAGER && star.count > 0;
+      const mgrRowTotal = mgrOwn + wb.perPerson + (mgrIsStar ? STAR_BONUS : 0);   // his By Sourcer row Total $
       const othersProd = teamBase - mgrOwn;
       const override = othersProd * OVERRIDE_RATE;
       const teamHitQuota = wb.weeks.length > 0 && wb.weeks.every(w => w.met);
-      const mgrEarned = mgrOwn + override;
+      const mgrEarned = mgrRowTotal + override;
       const mgrPayout = teamHitQuota ? mgrEarned : 0;
 
       // Grouped by caller (Sourcer Phone); one row per texter whose leads that caller pre-qualified.
@@ -1207,9 +1209,9 @@ function renderLoading() {
           <h2>MANAGER PAY \u00b7 JUAN</h2>
           <div style="background:var(--gs-dark-green); border-radius:8px; padding:16px 20px; display:flex; flex-wrap:wrap; align-items:center; gap:22px;">
             <div>
-              <div style="font-family:var(--font-display); font-size:10px; letter-spacing:1.5px; color:var(--gs-gold); font-weight:bold;">OWN COMMISSION</div>
-              <div style="font-family:var(--font-display); font-size:26px; color:var(--gs-cream); font-weight:bold; line-height:1.1;">${fmtUSD(mgrOwn)}</div>
-              <div style="font-family:var(--font-body); font-size:9px; color:var(--gs-cream); opacity:0.7;">his own pre-qualifies (tiered)</div>
+              <div style="font-family:var(--font-display); font-size:10px; letter-spacing:1.5px; color:var(--gs-gold); font-weight:bold;">OWN EARNINGS</div>
+              <div style="font-family:var(--font-display); font-size:26px; color:var(--gs-cream); font-weight:bold; line-height:1.1;">${fmtUSD(mgrRowTotal)}</div>
+              <div style="font-family:var(--font-body); font-size:9px; color:var(--gs-cream); opacity:0.7;">pre-qualify + weekly bonus + star</div>
             </div>
             <div style="font-family:var(--font-display); font-size:22px; color:var(--gs-gold);">+</div>
             <div>
@@ -1225,7 +1227,7 @@ function renderLoading() {
               ${!teamHitQuota ? `<div style="font-family:var(--font-body); font-size:9px; color:var(--gs-cream); opacity:0.7; margin-top:3px;">would be ${fmtUSD(mgrEarned)} once the team hits quota</div>` : ''}
             </div>
           </div>
-          <div style="font-family:var(--font-body); font-size:10px; color:var(--gs-faint); margin-top:8px;">Override = 15% of the other reps' pre-qualify pay (excludes Juan's own leads). Both Juan's own commission and his override unlock only when the team hits its weekly quota (${teamHitQuota ? 'met' : 'not met'} this period). Weekly bonus and Star, if any, are shown in his row above.</div>
+          <div style="font-family:var(--font-body); font-size:10px; color:var(--gs-faint); margin-top:8px;">Own Earnings = Juan's row Total (pre-qualify $ + weekly bonus + star). Override = 15% of the other reps' pre-qualify pay (excludes Juan's own leads). Everything here unlocks only when the team hits its weekly quota (${teamHitQuota ? 'met' : 'not met'} this period).</div>
         </div>
 
         ${renderFooter()}
