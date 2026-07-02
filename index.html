@@ -971,6 +971,19 @@ function renderLoading() {
     }
     function mondayOf(dt) { const x = new Date(dt); const day = (x.getDay() + 6) % 7; x.setDate(x.getDate() - day); return x; }
 
+    // A week belongs to the month of its Monday. For the month that owns `refDate`'s week,
+    // return the first owned Monday, the last owned Monday, and that last week's end (Sunday).
+    function monthOwnedWindow(refDate) {
+      const wkMon = mondayOf(refDate);
+      const Y = wkMon.getFullYear(), Mo = wkMon.getMonth();
+      let firstMon = mondayOf(new Date(Y, Mo, 1));
+      if (firstMon.getMonth() !== Mo) firstMon.setDate(firstMon.getDate() + 7);  // first Monday inside the month
+      let lastMon = new Date(Y, Mo + 1, 0);                                       // last day of month
+      while (lastMon.getDay() !== 1) lastMon.setDate(lastMon.getDate() - 1);      // step back to its last Monday
+      const lastWeekEnd = new Date(lastMon); lastWeekEnd.setDate(lastWeekEnd.getDate() + 6);
+      return { firstMon, lastMon, lastWeekEnd, Y, Mo };
+    }
+
     function presetRange(key) {
       const t = new Date();
       if (key === 'today')     return { from: new Date(t), to: new Date(t) };
@@ -1058,9 +1071,16 @@ function renderLoading() {
       const a = aggregate(state.from, state.to); state.days = a.days;
       const wb = weeklyBonus(state.from, state.to);
 
+      // Star of the Month: leader by pre-qualified across the ENTIRE month (weeks owned by month
+      // of the current view), month-to-date. The $50 only lands on the last day of the month's
+      // last week; before that it's a pending "month leader" badge worth $0.
+      const mw = monthOwnedWindow(state.to);
+      const monthAgg = aggregate(mw.firstMon, state.to);
       let star = { name: '\u2014', count: 0 };
-      Object.keys(a.people).forEach(n => { if (a.people[n].pqPhone > star.count) star = { name: n, count: a.people[n].pqPhone }; });
-      const starBonusTotal = star.count > 0 ? STAR_BONUS : 0;
+      Object.keys(monthAgg.people).forEach(n => { if (monthAgg.people[n].pqPhone > star.count) star = { name: n, count: monthAgg.people[n].pqPhone }; });
+      const starActive = star.count > 0;
+      const starPayable = iso(state.to) >= iso(mw.lastWeekEnd);   // month has closed (viewing its last week's end or later)
+      const starBonusTotal = (starActive && starPayable) ? STAR_BONUS : 0;
 
       const names = [...ROSTER];
       Object.keys(a.people).forEach(n => { if (!names.includes(n)) names.push(n); });
@@ -1080,8 +1100,8 @@ function renderLoading() {
       // Manager pay (Juan): 15% override on the OTHER reps' pre-qualify pay; both his own
       // commission and the override are gated — they unlock only when the team hits weekly quota.
       const mgrOwn = pay[MANAGER] ? pay[MANAGER].payBase : 0;
-      const mgrIsStar = star.name === MANAGER && star.count > 0;
-      const mgrRowTotal = mgrOwn + wb.perPerson + (mgrIsStar ? STAR_BONUS : 0);   // his By Sourcer row Total $
+      const mgrIsStar = star.name === MANAGER && starActive;
+      const mgrRowTotal = mgrOwn + wb.perPerson + ((mgrIsStar && starPayable) ? STAR_BONUS : 0);   // his By Sourcer row Total $
       const othersProd = teamBase - mgrOwn;
       const override = othersProd * OVERRIDE_RATE;
       const teamHitQuota = wb.weeks.length > 0 && wb.weeks.every(w => w.met);
@@ -1093,10 +1113,10 @@ function renderLoading() {
       // Each texter row shows its own Pre-Qualified count and $ (call-rate to caller + text-rate to texter).
       const rows = names.map(n => {
         const p = a.people[n] || { members: 0, warmT: 0, warmTPhone: 0, pqText: 0, pqPhone: 0, phones: {}, texts: {} };
-        const isStar = n === star.name && star.count > 0;
+        const isStar = n === star.name && starActive;
         const tier = pay[n].tier;                          // caller's tier (call rate)
         const weekly = wb.perPerson;
-        const starPay = isStar ? STAR_BONUS : 0;
+        const starPay = (isStar && starPayable) ? STAR_BONUS : 0;
         const ratioLabel = tier.ratio === null ? '\u2014' : Math.round(tier.ratio).toLocaleString('en-US');
         const hasActivity = ROSTER.includes(n) || p.members > 0 || p.warmTPhone > 0 || p.pqPhone > 0 || p.pqText > 0;
 
@@ -1104,7 +1124,7 @@ function renderLoading() {
         textEntries.sort((x, y) => (x[0] === n ? -1 : y[0] === n ? 1 : y[1] - x[1]));
         if (textEntries.length === 0) textEntries = [[hasActivity ? n : '\u2014', 0]];
 
-        const starTag = isStar ? ' <span style="display:inline-block;padding:1px 7px;border-radius:9px;background:var(--gs-dark-green);color:var(--gs-gold);font-family:var(--font-body);font-size:9px;font-weight:bold;letter-spacing:0.5px;vertical-align:1px;">\u2605 STAR +$50</span>' : '';
+        const starTag = isStar ? ` <span style="display:inline-block;padding:1px 7px;border-radius:9px;background:var(--gs-dark-green);color:var(--gs-gold);font-family:var(--font-body);font-size:9px;font-weight:bold;letter-spacing:0.5px;vertical-align:1px;">\u2605 STAR${starPayable ? ' +$50' : ' (month leader)'}</span>` : '';
 
         return textEntries.map(([t, c], idx) => {
           const first = idx === 0;
@@ -1151,9 +1171,9 @@ function renderLoading() {
             <div style="font-family:var(--font-body); font-size:11px; color:var(--gs-gold); margin-top:4px;">${fmtUSD(teamBase)} pre-qualify + ${fmtUSD(wb.teamTotal)} team bonus${starBonusTotal ? ' + ' + fmtUSD(starBonusTotal) + ' star' : ''}</div>
           </div>
           <div style="text-align:right;">
-            <div style="font-family:var(--font-display); font-weight:bold; font-size:11px; letter-spacing:2px; color:var(--gs-gold);">STAR OF THE PERIOD</div>
+            <div style="font-family:var(--font-display); font-weight:bold; font-size:11px; letter-spacing:2px; color:var(--gs-gold);">STAR OF THE MONTH</div>
             <div style="font-family:var(--font-display); font-weight:bold; font-size:20px; color:var(--gs-cream); margin-top:4px;">\u2605 ${star.name}</div>
-            <div style="font-family:var(--font-body); font-size:11px; color:var(--gs-gold); margin-top:2px;">${star.count} pre-qualified${starBonusTotal ? ' \u00b7 +$50' : ''}</div>
+            <div style="font-family:var(--font-body); font-size:11px; color:var(--gs-gold); margin-top:2px;">${star.count} pre-qualified this month \u00b7 ${starPayable ? '+$50 (awarded)' : '+$50 at month close'}</div>
           </div>
         </div>
 
@@ -1202,7 +1222,7 @@ function renderLoading() {
             <span style="font-family:var(--font-display); font-size:10px; font-weight:bold; letter-spacing:1px; color:var(--gs-gold);">PAYOUT TIERS \u00b7 leads per warm transfer</span>
             ${TIERS.map(t => `<span style="font-family:var(--font-body); font-size:11px; padding:3px 10px; border-radius:12px; background:var(--gs-cream); border:0.5px solid var(--gs-border-soft); color:var(--gs-dark-green);"><b>${t.label}</b> &rarr; ${t.text || t.call ? '$' + t.text + ' / $' + t.call : '$0'}</span>`).join('')}
           </div>
-          <div style="font-family:var(--font-body); font-size:10px; color:var(--gs-faint); margin-top:8px;">Each row = a caller (Sourcer Phone); the Text column lists the texter(s) whose leads that caller pre-qualified. Pre-Qualified = leads this caller pre-qualified. Ratio = campaign members \u00f7 warm transfers (by phone), setting the tier. Pre-Qualify $ = the person's full pay (text-rate on leads they texted + call-rate on leads they pre-qualified). Weekly Bonus $ = $15 per person for each week the team hits its goal. Star $ = $50 to the period's top pre-qualifier. Highlighted rows = caller and texter differ.</div>
+          <div style="font-family:var(--font-body); font-size:10px; color:var(--gs-faint); margin-top:8px;">Each row = a caller (Sourcer Phone); the Text column lists the texter(s) whose leads that caller pre-qualified. Pre-Qualified = leads this caller pre-qualified. Ratio = campaign members \u00f7 warm transfers (by phone), setting the tier. Pre-Qualify $ = the person's full pay (text-rate on leads they texted + call-rate on leads they pre-qualified). Weekly Bonus $ = $15 per person for each week the team hits its goal. Star $ = $50 to the month's top pre-qualifier (whole month, by week-ownership) \u2014 awarded once, on the last day of the month's last week; shown as a pending badge until then. Highlighted rows = caller and texter differ.</div>
         </div>
 
         <div class="section">
