@@ -1043,7 +1043,10 @@ function renderLoading() {
         const p = ensure(tx); p.pqText += 1; ensure(ph).pqPhone += 1;
         p.phones[ph] = (p.phones[ph] || 0) + 1;      // texter -> callers
         ensure(ph).texts[tx] = (ensure(ph).texts[tx] || 0) + 1;   // caller -> texters
-        const name = ((r[PQ_FIRST] || '') + ' ' + (r[PQ_LAST] || '')).trim() || '(unnamed lead)';
+        const nm = [r[PQ_FIRST], r[PQ_LAST]]
+          .map(v => String(v || '').trim())
+          .filter(v => v && !/^[-\u2013\u2014.\s]+$/.test(v));   // drop empty or placeholder ("-", ".") parts
+        const name = nm.join(' ').trim() || '(unnamed lead)';
         leads.push({ name, tx, ph });
         prequal += 1; dayset.add(dt);
       }
