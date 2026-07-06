@@ -953,7 +953,7 @@ function renderLoading() {
     const CM_SHIFT = 1, WT_SHIFT = 1, PQ_SHIFT = 0;
     // Column indexes (0-based). Adjust only if a tab's layout changes.
     const CM_DATE = 0, CM_OWNER = 1, CM_MEMBERS = 3;         // Campaign Members: A Start Date | B Owner | D Actual Campaign Members
-    const WT_DATE = 0, WT_TEXT = 1, WT_PHONE = 2;            // Warm Transfers: A Created Date | B Sourcer (Text) | C Sourcer (Phone)
+    const WT_DATE = 0, WT_TEXT = 1, WT_PHONE = 2, WT_NAME = 3, WT_STATUS = 6, WT_URL = 7;   // + G Lead Status | H Lead URL
     const PQ_DATE = 0, PQ_FIRST = 2, PQ_TEXT = 3, PQ_PHONE = 4, PQ_LAST = 5;  // PreQualified: A Date | C First | D Sourcer(Text) | E Sourcer(Phone) | F Last
 
     let CAMPAIGN_ROWS = [], TRANSFER_ROWS = [], PREQUAL_ROWS = [];
@@ -1021,7 +1021,8 @@ function renderLoading() {
       const ensure = (n) => { if (!people[n]) people[n] = { members: 0, warmT: 0, warmTPhone: 0, pqText: 0, pqPhone: 0, phones: {}, texts: {} }; return people[n]; };
       let members = 0, warmTransfers = 0, prequal = 0;
       const dayset = new Set();
-      const leads = [];   // per pre-qualified lead: { name, tx, ph }
+      const leads = [];      // per pre-qualified lead: { name, tx, ph }  (drives pay)
+      const transfers = [];  // per warm transfer: { name, status, url, tx, ph }  (drives the expand list)
 
       for (const r of CAMPAIGN_ROWS) {
         const o = (r[CM_OWNER] || '').trim(); const dt = normDate(r[CM_DATE], CM_SHIFT);
@@ -1035,6 +1036,8 @@ function renderLoading() {
         if (dt < f || dt > tISO) continue;
         if (tx) ensure(tx).warmT += 1;
         if (ph) ensure(ph).warmTPhone += 1;
+        const nm = [r[WT_NAME]].map(v => String(v || '').trim()).filter(v => v && !/^[-\u2013\u2014.\s]+$/.test(v)).join(' ') || '(unnamed lead)';
+        transfers.push({ name: nm, status: String(r[WT_STATUS] || '').trim(), url: String(r[WT_URL] || '').trim(), tx, ph });
         warmTransfers += 1; dayset.add(dt);
       }
       for (const r of PREQUAL_ROWS) {
@@ -1051,7 +1054,7 @@ function renderLoading() {
         prequal += 1; dayset.add(dt);
       }
       return {
-        members, warmTransfers, prequal, days: dayset.size, people, leads,
+        members, warmTransfers, prequal, days: dayset.size, people, leads, transfers,
         goalTop: Math.round(members / GOAL_TOP), goalOptimal: Math.round(members / GOAL_OPTIMAL), goalMin: Math.round(members / GOAL_MIN)
       };
     }
@@ -1159,12 +1162,9 @@ function renderLoading() {
 
       const teamTotal = teamBase + wb.teamTotal + starBonusTotal;
 
-      // Per-person lead lists for the expandable detail (name + that person's share).
-      const leadsByPhone = {}, leadsByText = {};
-      a.leads.forEach(L => {
-        (leadsByPhone[L.ph] = leadsByPhone[L.ph] || []).push(L);
-        (leadsByText[L.tx] = leadsByText[L.tx] || []).push(L);
-      });
+      // Per-person warm transfers (by phone sourcer) for the expandable detail list.
+      const transfersByPhone = {};
+      a.transfers.forEach(T => { (transfersByPhone[T.ph] = transfersByPhone[T.ph] || []).push(T); });
 
       // Grouped by person. Each block: a primary (self) row carrying the person's
       // members/ratio/weekly/star/total, then CALL rows (their call-rate share for leads they
@@ -1185,25 +1185,12 @@ function renderLoading() {
         const edge = 'border-bottom:1px solid #EFEADD;';
         const starTag = isStar ? ` <span style="display:inline-block;padding:1px 7px;border-radius:9px;background:var(--gs-dark-green);color:var(--gs-gold);font-family:var(--font-body);font-size:9px;font-weight:bold;letter-spacing:0.5px;vertical-align:1px;">\u2605 STAR +$50</span>` : '';
 
-        // Build the per-lead detail lines for this person.
-        const callTag = `<span style="display:inline-block;padding:0 6px;border-radius:8px;background:var(--gs-gold);color:var(--gs-dark-green);font-size:8.5px;font-weight:bold;">CALL</span>`;
-        const creditTag = `<span style="display:inline-block;padding:0 6px;border-radius:8px;background:var(--gs-cream);color:var(--gs-dark-green);border:1px solid var(--gs-gold);font-size:8.5px;font-weight:bold;">TEXT CREDIT</span>`;
-        const selfTag = `<span style="display:inline-block;padding:0 6px;border-radius:8px;background:var(--gs-dark-green);color:var(--gs-gold);font-size:8.5px;font-weight:bold;">SELF</span>`;
-        const detail = [];
-        (leadsByPhone[n] || []).forEach(L => {
-          const b = bandOf[L.ph];
-          if (L.tx === n) detail.push({ name: L.name, amt: b.total, tag: selfTag, note: '' });
-          else detail.push({ name: L.name, amt: b.phoneShare, tag: callTag, note: 'texted by ' + L.tx });
-        });
-        (leadsByText[n] || []).forEach(L => {
-          if (L.ph === n) return;   // self already listed
-          const b = bandOf[L.ph];
-          const amt = (band.total === 0) ? 0 : b.textShare;   // texter forfeits credit if their own ratio is >800
-          detail.push({ name: L.name, amt, tag: creditTag, note: 'called by ' + L.ph });
-        });
+        // Expandable detail: this person's warm transfers (as Sourcer Phone) — Full Name linked to Lead URL.
+        const escapeAttr = (s) => String(s).replace(/"/g, '&quot;');
+        const myTransfers = transfersByPhone[n] || [];
 
         const detailId = 'lead_' + idx;
-        const hasDetail = detail.length > 0;
+        const hasDetail = myTransfers.length > 0;
         const caret = hasDetail ? `<span id="c_${detailId}" style="color:var(--gs-gold);font-weight:bold;margin-right:4px;">\u25B8</span>` : '<span style="margin-right:4px;opacity:0;">\u25B8</span>';
         const summaryRow = `<tr style="${isStar ? 'background:#EBD88C;' : 'background:#FFFFFF;'}${edge}${hasDetail ? 'cursor:pointer;' : ''}"${hasDetail ? ` onclick="toggleLeads('${detailId}')"` : ''}>
           <td class="label"${isStar ? ' style="font-weight:bold;color:var(--gs-dark-green);"' : ''}>${caret}${hasActivity ? n : '\u2014'}${starTag}</td>
@@ -1218,14 +1205,20 @@ function renderLoading() {
         </tr>`;
 
         const detailRow = hasDetail ? `<tr id="${detailId}" style="display:none;background:#FBF7EC;">
-          <td colspan="9" style="padding:0 24px 10px 34px;">
+          <td colspan="9" style="padding:6px 24px 12px 34px;">
+            <div style="font-family:var(--font-display); font-size:9px; letter-spacing:1px; color:var(--gs-gold); font-weight:bold; padding-bottom:4px;">WARM TRANSFERS \u00b7 ${myTransfers.length}</div>
             <table style="width:100%;border-collapse:collapse;font-size:11px;">
-              ${detail.map(d => `<tr>
-                <td style="padding:4px 8px;color:var(--gs-dark-green);border-bottom:1px solid #EFEADD;">${d.name}</td>
-                <td style="padding:4px 8px;border-bottom:1px solid #EFEADD;white-space:nowrap;">${d.tag}</td>
-                <td style="padding:4px 8px;color:var(--gs-faint);font-size:10px;border-bottom:1px solid #EFEADD;">${d.note}</td>
-                <td class="num" style="padding:4px 8px;text-align:right;border-bottom:1px solid #EFEADD;">${fmtUSD(d.amt)}</td>
-              </tr>`).join('')}
+              ${myTransfers.map(T => {
+                const isLink = /^https?:\/\//i.test(T.url);
+                const nameCell = isLink
+                  ? `<a href="${escapeAttr(T.url)}" target="_blank" rel="noopener" style="color:var(--gs-dark-green);text-decoration:underline;">${T.name}</a>`
+                  : `<span style="color:var(--gs-dark-green);">${T.name}</span>`;
+                return `<tr>
+                  <td style="padding:4px 8px;border-bottom:1px solid #EFEADD;">${nameCell}</td>
+                  <td style="padding:4px 8px;color:var(--gs-faint);font-size:10px;border-bottom:1px solid #EFEADD;">${T.status || ''}</td>
+                  <td style="padding:4px 8px;text-align:right;border-bottom:1px solid #EFEADD;">${T.tx && T.tx !== n ? '<span style="color:var(--gs-faint);font-size:10px;">texted by ' + T.tx + '</span>' : ''}</td>
+                </tr>`;
+              }).join('')}
             </table>
           </td>
         </tr>` : '';
@@ -1323,7 +1316,7 @@ function renderLoading() {
             <span style="font-family:var(--font-display); font-size:10px; font-weight:bold; letter-spacing:1px; color:var(--gs-gold);">REWARD BANDS \u00b7 members \u00f7 pre-qualified (phone)</span>
             ${BANDS.map(b => `<span style="font-family:var(--font-body); font-size:11px; padding:3px 10px; border-radius:12px; background:var(--gs-cream); border:0.5px solid var(--gs-border-soft); color:var(--gs-dark-green);"><b>${b.label}</b> &rarr; $${b.total} ($${b.textShare} text / $${(b.total - b.textShare)} phone)</span>`).join('')}
           </div>
-          <div style="font-family:var(--font-body); font-size:10px; color:var(--gs-faint); margin-top:8px;">Click a name to see its leads. Each lead's band comes from the <b>phone sourcer's ratio</b> (their members \u00f7 pre-qualified). The texter gets the text share, the phone sourcer gets the rest; if one person did both, they get the whole amount. Ratio column = members \u00f7 pre-qualified. Weekly Bonus = $15 per active member for each week the team hits Optimal (\u00f7700); anyone out the whole week is skipped and Juan is excluded. Star = $50 to the month's top pre-qualifier, awarded once at month close.</div>
+          <div style="font-family:var(--font-body); font-size:10px; color:var(--gs-faint); margin-top:8px;">Click a name to see that person's warm transfers (Full Name links to the lead). Each lead's band comes from the <b>phone sourcer's ratio</b> (their members \u00f7 pre-qualified). The texter gets the text share, the phone sourcer gets the rest; anyone whose own ratio is &gt;800 earns $0. Ratio column = members \u00f7 pre-qualified. Weekly Bonus = $15 per active member for each week the team hits Optimal (\u00f7700); anyone out the whole week is skipped and Juan is excluded. Star = $50 to the month's top pre-qualifier, shown only at month close.</div>
         </div>
 
         ${renderFooter()}
