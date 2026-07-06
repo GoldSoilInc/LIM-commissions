@@ -922,6 +922,7 @@ function renderLoading() {
 
     // ---- Tunables (change here, no other edits needed) ----
     const WEEKLY_BONUS = 15, STAR_BONUS = 50;
+    const STAR_ENABLED = true;   // Star section always visible; the winner's name + $50 appear only in the month's last week.
 
     // Goal divisors: expected pre-qualified = campaign members / divisor.
     const GOAL_TOP = 600, GOAL_OPTIMAL = 700, GOAL_MIN = 800;
@@ -1147,8 +1148,8 @@ function renderLoading() {
       let star = { name: '\u2014', count: 0 };
       Object.keys(monthAgg.people).forEach(n => { if (monthAgg.people[n].pqPhone > star.count) star = { name: n, count: monthAgg.people[n].pqPhone }; });
       const starActive = star.count > 0;
-      const starPayable = iso(state.to) >= iso(mw.lastWeekEnd);   // month has closed (viewing its last week's end or later)
-      const starShow = starActive && starPayable;                 // star is revealed only at month close
+      const starPayable = iso(state.to) >= iso(mw.lastMon);       // in the final week of the month (its last Monday onward)
+      const starShow = STAR_ENABLED && starActive && starPayable; // name + $ appear only during the month's last week
       const starBonusTotal = starShow ? STAR_BONUS : 0;
 
       const names = [...ROSTER];
@@ -1228,12 +1229,12 @@ function renderLoading() {
           <td class="num">${ratioLabel}</td>
           <td class="num">${fmtUSD(base)}</td>
           <td class="num">${fmtUSD(weekly)}</td>
-          <td class="num">${fmtUSD(starPay)}</td>
+          ${STAR_ENABLED ? `<td class="num">${fmtUSD(starPay)}</td>` : ''}
           <td class="num gold">${fmtUSD(personTotal)}</td>
         </tr>`;
 
         const detailRow = hasDetail ? `<tr id="${detailId}" style="display:none;background:#FBF7EC;">
-          <td colspan="9" style="padding:6px 24px 12px 34px;">
+          <td colspan="${STAR_ENABLED ? 9 : 8}" style="padding:6px 24px 12px 34px;">
             <div style="font-family:var(--font-display); font-size:9px; letter-spacing:1px; color:var(--gs-gold); font-weight:bold; padding-bottom:4px;">WARM TRANSFERS \u00b7 ${detail.length} \u00b7 earned ${fmtUSD(base)}</div>
             <table style="width:100%;border-collapse:collapse;font-size:11px;">
               ${detail.map(d => {
@@ -1272,6 +1273,7 @@ function renderLoading() {
             <div style="font-family:var(--font-display); font-weight:bold; font-size:42px; color:var(--gs-cream); line-height:1.05; margin-top:4px;">${fmtUSD(teamTotal)}</div>
             <div style="font-family:var(--font-body); font-size:11px; color:var(--gs-gold); margin-top:4px;">${fmtUSD(teamBase)} pre-qualify + ${fmtUSD(wb.teamTotal)} team bonus${starBonusTotal ? ' + ' + fmtUSD(starBonusTotal) + ' star' : ''}</div>
           </div>
+          ${STAR_ENABLED ? `
           <div style="text-align:right;">
             <div style="font-family:var(--font-display); font-weight:bold; font-size:11px; letter-spacing:2px; color:var(--gs-gold);">STAR OF THE MONTH</div>
             ${starShow ? `
@@ -1279,9 +1281,9 @@ function renderLoading() {
             <div style="font-family:var(--font-body); font-size:11px; color:var(--gs-gold); margin-top:2px;">${star.count} pre-qualified \u00b7 +$50 (awarded)</div>
             ` : `
             <div style="font-family:var(--font-display); font-size:16px; color:var(--gs-cream); margin-top:4px; opacity:0.85;">\u2014</div>
-            <div style="font-family:var(--font-body); font-size:11px; color:var(--gs-gold); margin-top:2px;">revealed at month close</div>
+            <div style="font-family:var(--font-body); font-size:11px; color:var(--gs-gold); margin-top:2px;">revealed in the month's last week</div>
             `}
-          </div>
+          </div>` : ''}
         </div>
 
         <div class="kpi-strip" style="grid-template-columns: repeat(3, 1fr);">
@@ -1322,7 +1324,7 @@ function renderLoading() {
                 <th class="num">PRE-QUALIFIED</th>
                 <th class="num">RATIO</th>
                 <th class="num">PRE-QUALIFY $</th>
-                <th class="num">WEEKLY BONUS $</th><th class="num">STAR $</th><th class="num">TOTAL $</th>
+                <th class="num">WEEKLY BONUS $</th>${STAR_ENABLED ? '<th class="num">STAR $</th>' : ''}<th class="num">TOTAL $</th>
               </tr>
             </thead>
             <tbody>
@@ -1335,7 +1337,7 @@ function renderLoading() {
                 <td class="num">${a.prequal > 0 ? Math.round(a.members / a.prequal).toLocaleString('en-US') : '\u2014'}</td>
                 <td class="num">${fmtUSD(teamBase)}</td>
                 <td class="num">${fmtUSD(wb.teamTotal)}</td>
-                <td class="num">${fmtUSD(starBonusTotal)}</td>
+                ${STAR_ENABLED ? `<td class="num">${fmtUSD(starBonusTotal)}</td>` : ''}
                 <td class="num">${fmtUSD(teamTotal)}</td>
               </tr>
             </tbody>
@@ -1344,7 +1346,7 @@ function renderLoading() {
             <span style="font-family:var(--font-display); font-size:10px; font-weight:bold; letter-spacing:1px; color:var(--gs-gold);">REWARD BANDS \u00b7 members \u00f7 pre-qualified (phone)</span>
             ${BANDS.map(b => `<span style="font-family:var(--font-body); font-size:11px; padding:3px 10px; border-radius:12px; background:var(--gs-cream); border:0.5px solid var(--gs-border-soft); color:var(--gs-dark-green);"><b>${b.label}</b> &rarr; $${b.total} ($${b.textShare} text / $${(b.total - b.textShare)} phone)</span>`).join('')}
           </div>
-          <div style="font-family:var(--font-body); font-size:10px; color:var(--gs-faint); margin-top:8px;">Click a name to see that person's warm transfers (Full Name links to the lead). Each lead's band comes from the <b>phone sourcer's ratio</b> (their members \u00f7 pre-qualified). The texter gets the text share, the phone sourcer gets the rest; anyone whose own ratio is &gt;800 earns $0. Ratio column = members \u00f7 pre-qualified. Weekly Bonus = $15 per active member for each week the team hits Optimal (\u00f7700); anyone out the whole week is skipped and Juan is excluded. Star = $50 to the month's top pre-qualifier, shown only at month close.</div>
+          <div style="font-family:var(--font-body); font-size:10px; color:var(--gs-faint); margin-top:8px;">Click a name to see that person's warm transfers (Full Name links to the lead). Each lead's band comes from the <b>phone sourcer's ratio</b> (their members \u00f7 pre-qualified). The texter gets the text share, the phone sourcer gets the rest; anyone whose own ratio is &gt;800 earns $0. Ratio column = members \u00f7 pre-qualified. Weekly Bonus = $15 per active member for each week the team hits Optimal (\u00f7700); anyone out the whole week is skipped and Juan is excluded.${STAR_ENABLED ? " Star = $50 to the month's top pre-qualifier; the winner's name shows only in the month's last week." : ''}</div>
         </div>
 
         ${renderFooter()}
