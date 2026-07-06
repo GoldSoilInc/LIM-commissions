@@ -1166,6 +1166,14 @@ function renderLoading() {
       const transfersByPhone = {};
       a.transfers.forEach(T => { (transfersByPhone[T.ph] = transfersByPhone[T.ph] || []).push(T); });
 
+      // Match warm transfers <-> pre-qualified leads (only pre-qualified leads earn) by name + sourcers.
+      const normName = (s) => String(s || '').trim().toUpperCase().replace(/\s+/g, ' ');
+      const leadKey = (o) => normName(o.name) + '|' + o.tx + '|' + o.ph;
+      const pqSet = {};                       // which transfers became pre-qualified
+      a.leads.forEach(L => { pqSet[leadKey(L)] = true; });
+      const txIndex = {};                      // find a warm transfer (URL/status) for a pre-qualified lead
+      a.transfers.forEach(T => { txIndex[leadKey(T)] = T; });
+
       // Grouped by person. Each block: a primary (self) row carrying the person's
       // members/ratio/weekly/star/total, then CALL rows (their call-rate share for leads they
       // pre-qualified that someone else texted) and TEXT CREDIT rows (their text-rate share for
@@ -1185,12 +1193,32 @@ function renderLoading() {
         const edge = 'border-bottom:1px solid #EFEADD;';
         const starTag = isStar ? ` <span style="display:inline-block;padding:1px 7px;border-radius:9px;background:var(--gs-dark-green);color:var(--gs-gold);font-family:var(--font-body);font-size:9px;font-weight:bold;letter-spacing:0.5px;vertical-align:1px;">\u2605 STAR +$50</span>` : '';
 
-        // Expandable detail: this person's warm transfers (as Sourcer Phone) — Full Name linked to Lead URL.
+        // Expandable detail: warm transfers this person is on, each with the amount they earned.
+        // Only pre-qualified leads earn; a person also earns a text credit on leads they texted that
+        // someone else called. Amounts sum to this person's Pre-Qualify $.
         const escapeAttr = (s) => String(s).replace(/"/g, '&quot;');
-        const myTransfers = transfersByPhone[n] || [];
+        const forfeited = band.total === 0;   // own ratio >800 -> earns nothing
+        const tagPill = (bg, fg, bd, txt) => `<span style="display:inline-block;padding:0 6px;border-radius:8px;background:${bg};color:${fg};${bd ? 'border:1px solid ' + bd + ';' : ''}font-size:8px;font-weight:bold;vertical-align:1px;">${txt}</span>`;
+        const detail = [];
+        // Leads this person phone-sourced (their warm transfers as Sourcer Phone).
+        (transfersByPhone[n] || []).forEach(T => {
+          const isPQ = !!pqSet[leadKey(T)];
+          let earned = 0, tag;
+          if (!isPQ) { tag = tagPill('var(--gs-cream)', 'var(--gs-faint)', 'var(--gs-border-soft)', 'PENDING'); }
+          else if (T.tx === n) { earned = band.total; tag = tagPill('var(--gs-dark-green)', 'var(--gs-gold)', '', 'SELF'); }
+          else { earned = band.phoneShare; tag = tagPill('var(--gs-gold)', 'var(--gs-dark-green)', '', 'CALL'); }
+          detail.push({ name: T.name, url: T.url, status: T.status, earned, tag, note: (isPQ && T.tx !== n) ? 'texted by ' + T.tx : '' });
+        });
+        // Text credits: leads this person texted that someone else phone-sourced (pre-qualified).
+        a.leads.forEach(L => {
+          if (L.tx !== n || L.ph === n) return;
+          const T = txIndex[leadKey(L)] || {};
+          const earned = forfeited ? 0 : (bandOf[L.ph] || bandFor(0, 0)).textShare;
+          detail.push({ name: L.name, url: T.url || '', status: T.status || '', earned, tag: tagPill('var(--gs-cream)', 'var(--gs-dark-green)', 'var(--gs-gold)', 'TEXT CREDIT'), note: 'called by ' + L.ph });
+        });
 
         const detailId = 'lead_' + idx;
-        const hasDetail = myTransfers.length > 0;
+        const hasDetail = detail.length > 0;
         const caret = hasDetail ? `<span id="c_${detailId}" style="color:var(--gs-gold);font-weight:bold;margin-right:4px;">\u25B8</span>` : '<span style="margin-right:4px;opacity:0;">\u25B8</span>';
         const summaryRow = `<tr style="${isStar ? 'background:#EBD88C;' : 'background:#FFFFFF;'}${edge}${hasDetail ? 'cursor:pointer;' : ''}"${hasDetail ? ` onclick="toggleLeads('${detailId}')"` : ''}>
           <td class="label"${isStar ? ' style="font-weight:bold;color:var(--gs-dark-green);"' : ''}>${caret}${hasActivity ? n : '\u2014'}${starTag}</td>
@@ -1206,17 +1234,17 @@ function renderLoading() {
 
         const detailRow = hasDetail ? `<tr id="${detailId}" style="display:none;background:#FBF7EC;">
           <td colspan="9" style="padding:6px 24px 12px 34px;">
-            <div style="font-family:var(--font-display); font-size:9px; letter-spacing:1px; color:var(--gs-gold); font-weight:bold; padding-bottom:4px;">WARM TRANSFERS \u00b7 ${myTransfers.length}</div>
+            <div style="font-family:var(--font-display); font-size:9px; letter-spacing:1px; color:var(--gs-gold); font-weight:bold; padding-bottom:4px;">WARM TRANSFERS \u00b7 ${detail.length} \u00b7 earned ${fmtUSD(base)}</div>
             <table style="width:100%;border-collapse:collapse;font-size:11px;">
-              ${myTransfers.map(T => {
-                const isLink = /^https?:\/\//i.test(T.url);
+              ${detail.map(d => {
+                const isLink = /^https?:\/\//i.test(d.url);
                 const nameCell = isLink
-                  ? `<a href="${escapeAttr(T.url)}" target="_blank" rel="noopener" style="color:var(--gs-dark-green);text-decoration:underline;">${T.name}</a>`
-                  : `<span style="color:var(--gs-dark-green);">${T.name}</span>`;
+                  ? `<a href="${escapeAttr(d.url)}" target="_blank" rel="noopener" style="color:var(--gs-dark-green);text-decoration:underline;">${d.name}</a>`
+                  : `<span style="color:var(--gs-dark-green);">${d.name}</span>`;
                 return `<tr>
-                  <td style="padding:4px 8px;border-bottom:1px solid #EFEADD;">${nameCell}</td>
-                  <td style="padding:4px 8px;color:var(--gs-faint);font-size:10px;border-bottom:1px solid #EFEADD;">${T.status || ''}</td>
-                  <td style="padding:4px 8px;text-align:right;border-bottom:1px solid #EFEADD;">${T.tx && T.tx !== n ? '<span style="color:var(--gs-faint);font-size:10px;">texted by ' + T.tx + '</span>' : ''}</td>
+                  <td style="padding:4px 8px;border-bottom:1px solid #EFEADD;">${nameCell} ${d.tag}${d.note ? ' <span style="color:var(--gs-faint);font-size:9px;">' + d.note + '</span>' : ''}</td>
+                  <td style="padding:4px 8px;color:var(--gs-faint);font-size:10px;border-bottom:1px solid #EFEADD;">${d.status || ''}</td>
+                  <td class="num" style="padding:4px 8px;text-align:right;border-bottom:1px solid #EFEADD;">${fmtUSD(d.earned)}</td>
                 </tr>`;
               }).join('')}
             </table>
