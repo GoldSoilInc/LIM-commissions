@@ -1158,6 +1158,51 @@ function renderLoading() {
       const mgrEarned = ownEarnings + override;
       const mgrPayout = teamHitQuota ? mgrEarned : 0;
 
+      // ---- Juan-only slice (his campaigns / his leads) ----
+      const jp = a.people[MANAGER] || { members: 0, pqPhone: 0, warmTPhone: 0 };
+      const jMembers = jp.members, jPrequal = jp.pqPhone;
+      const jBand = bandOf[MANAGER] || bandFor(jMembers, jPrequal);
+      const jRatio = jBand.ratio === null ? '\u2014' : Math.round(jBand.ratio).toLocaleString('en-US');
+      const jGoals = [['TOP TARGET', Math.round(jMembers / GOAL_TOP), GOAL_TOP], ['OPTIMAL', Math.round(jMembers / GOAL_OPTIMAL), GOAL_OPTIMAL], ['BARE MINIMUM', Math.round(jMembers / GOAL_MIN), GOAL_MIN]];
+
+      // Juan's weekly goal attainment (his members / 700 vs his pre-qualified) — personal target, no bonus.
+      const jWeeks = [];
+      { let ws = mondayOf(state.from);
+        while (ws <= state.to) {
+          const we = new Date(ws); we.setDate(we.getDate() + 6);
+          const segFrom = new Date(Math.max(ws.getTime(), state.from.getTime()));
+          const segTo = new Date(Math.min(we.getTime(), state.to.getTime()));
+          const jw = (aggregate(segFrom, segTo).people[MANAGER]) || { members: 0, pqPhone: 0 };
+          const goal = Math.round(jw.members / GOAL_OPTIMAL);
+          jWeeks.push({ ws: new Date(ws), members: jw.members, prequal: jw.pqPhone, goal, met: jw.pqPhone >= goal && goal > 0 });
+          ws = new Date(ws); ws.setDate(ws.getDate() + 7);
+        }
+      }
+
+      // Juan's lead breakdown (his warm transfers + text credits) with the amount he earned per lead.
+      const normName = (s) => String(s || '').trim().toUpperCase().replace(/\s+/g, ' ');
+      const leadKey = (o) => normName(o.name) + '|' + o.tx + '|' + o.ph;
+      const pqSet = {}; a.leads.forEach(L => { pqSet[leadKey(L)] = true; });
+      const txIndex = {}; a.transfers.forEach(T => { txIndex[leadKey(T)] = T; });
+      const jForfeit = jBand.total === 0;
+      const escapeAttr = (s) => String(s).replace(/"/g, '&quot;');
+      const jTag = (bg, fg, bd, txt) => `<span style="display:inline-block;padding:0 6px;border-radius:8px;background:${bg};color:${fg};${bd ? 'border:1px solid ' + bd + ';' : ''}font-size:8px;font-weight:bold;vertical-align:1px;">${txt}</span>`;
+      const jDetail = [];
+      a.transfers.filter(T => T.ph === MANAGER).forEach(T => {
+        const isPQ = !!pqSet[leadKey(T)];
+        let earned = 0, tag;
+        if (!isPQ) tag = jTag('var(--gs-cream)', 'var(--gs-faint)', 'var(--gs-border-soft)', 'PENDING');
+        else if (T.tx === MANAGER) { earned = jBand.total; tag = jTag('var(--gs-dark-green)', 'var(--gs-gold)', '', 'SELF'); }
+        else { earned = jBand.phoneShare; tag = jTag('var(--gs-gold)', 'var(--gs-dark-green)', '', 'CALL'); }
+        jDetail.push({ name: T.name, url: T.url, status: T.status, earned, tag, note: (isPQ && T.tx !== MANAGER) ? 'texted by ' + T.tx : '' });
+      });
+      a.leads.forEach(L => {
+        if (L.tx !== MANAGER || L.ph === MANAGER) return;
+        const T = txIndex[leadKey(L)] || {};
+        const earned = jForfeit ? 0 : (bandOf[L.ph] || bandFor(0, 0)).textShare;
+        jDetail.push({ name: L.name, url: T.url || '', status: T.status || '', earned, tag: jTag('var(--gs-cream)', 'var(--gs-dark-green)', 'var(--gs-gold)', 'TEXT CREDIT'), note: 'called by ' + L.ph });
+      });
+
       return wrapCard(`
         ${renderHeader('Manager Pay', 'Juan \u00b7 confidential')}
         ${renderFilterBar()}
@@ -1189,6 +1234,59 @@ function renderLoading() {
             </div>
           </div>
           <div style="font-family:var(--font-body); font-size:10px; color:var(--gs-faint); margin-top:8px;">Own Earnings = Juan\'s own pre-qualify pay (+ $50 star if he is the month\'s top pre-qualifier). Juan is excluded from the $15 weekly team bonus. Override = 15% of the other reps\' pre-qualify pay. Everything unlocks only when the team hits its weekly quota every week in view (${teamHitQuota ? 'met' : 'not met'} this period).</div>
+        </div>
+
+        <div style="margin:6px 24px 0; font-family:var(--font-display); font-size:11px; letter-spacing:1.5px; color:var(--gs-gold); font-weight:bold;">JUAN\'S CAMPAIGNS \u00b7 THIS PERIOD</div>
+        <div class="kpi-strip" style="grid-template-columns: repeat(3, 1fr);">
+          <div class="kpi-cell"><div class="kpi-value">${jMembers.toLocaleString('en-US')}</div><div class="kpi-label">Campaign Members</div></div>
+          <div class="kpi-cell accent"><div class="kpi-value">${jPrequal}</div><div class="kpi-label">Pre-Qualified</div></div>
+          <div class="kpi-cell hero"><div class="kpi-value">${fmtUSD(mgrOwn)}</div><div class="kpi-label">Pre-Qualify $</div></div>
+        </div>
+
+        <div class="section">
+          <h2>GOALS \u00b7 PRE-QUALIFIED</h2>
+          <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px;">
+            ${jGoals.map(([lbl, goal, div]) => {
+              const hit = jPrequal >= goal && goal > 0;
+              return `<div style="background:${hit ? 'var(--gs-dark-green)' : 'var(--gs-cream)'}; border:1px solid ${hit ? 'var(--gs-dark-green)' : 'var(--gs-border-soft)'}; border-radius:8px; padding:12px 16px;">
+                <div style="font-family:var(--font-display); font-size:10px; letter-spacing:1.5px; font-weight:bold; color:var(--gs-gold);">${lbl}</div>
+                <div style="font-family:var(--font-display); font-size:30px; font-weight:bold; line-height:1.1; color:${hit ? 'var(--gs-cream)' : 'var(--gs-dark-green)'};">${goal}</div>
+                <div style="font-family:var(--font-body); font-size:9px; color:${hit ? 'var(--gs-cream)' : 'var(--gs-faint)'};">members \u00f7 ${div}${hit ? ' \u00b7 \u2713 hit' : ''}</div>
+              </div>`;
+            }).join('')}
+          </div>
+        </div>
+
+        <div class="section">
+          <h2>WEEKLY GOAL \u00b7 JUAN</h2>
+          <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:8px;">
+            ${jWeeks.map(w => `<div style="display:flex;justify-content:space-between;gap:12px;padding:7px 12px;border-radius:6px;background:${w.met ? 'var(--gs-dark-green)' : '#fff'};border:1px solid ${w.met ? 'var(--gs-dark-green)' : 'var(--gs-border-soft)'};">
+              <span style="font-family:var(--font-body);font-size:11px;color:${w.met ? 'var(--gs-gold)' : 'var(--gs-faint)'};font-weight:bold;">Wk ${(w.ws.getMonth() + 1)}/${w.ws.getDate()}</span>
+              <span style="font-family:var(--font-body);font-size:11px;color:${w.met ? 'var(--gs-cream)' : 'var(--gs-dark-green)'};">${w.prequal} / ${w.goal} ${w.met ? '\u2713' : ''}</span>
+            </div>`).join('')}
+          </div>
+          <div style="font-family:var(--font-body); font-size:10px; color:var(--gs-faint); margin-top:6px;">Juan\'s own pre-qualified vs his campaign members \u00f7 700 (Optimal), per week. Personal target only \u2014 Juan is on manager pay, not the $15 team bonus.</div>
+        </div>
+
+        <div class="section">
+          <h2>LEAD BREAKDOWN \u00b7 ${jDetail.length} \u00b7 earned ${fmtUSD(mgrOwn)}</h2>
+          ${jDetail.length > 0 ? `
+          <table style="width:100%;border-collapse:collapse;font-size:12px;">
+            <thead><tr><th style="text-align:left;">LEAD</th><th style="text-align:left;">LEAD STATUS</th><th class="num">EARNED</th></tr></thead>
+            <tbody>
+              ${jDetail.map(d => {
+                const isLink = /^https?:\/\//i.test(d.url);
+                const nameCell = isLink
+                  ? `<a href="${escapeAttr(d.url)}" target="_blank" rel="noopener" style="color:var(--gs-dark-green);text-decoration:underline;">${d.name}</a>`
+                  : `<span style="color:var(--gs-dark-green);">${d.name}</span>`;
+                return `<tr>
+                  <td style="padding:5px 8px;border-bottom:1px solid #EFEADD;">${nameCell} ${d.tag}${d.note ? ' <span style="color:var(--gs-faint);font-size:9px;">' + d.note + '</span>' : ''}</td>
+                  <td style="padding:5px 8px;color:var(--gs-faint);font-size:11px;border-bottom:1px solid #EFEADD;">${d.status || ''}</td>
+                  <td class="num" style="padding:5px 8px;text-align:right;border-bottom:1px solid #EFEADD;">${fmtUSD(d.earned)}</td>
+                </tr>`;
+              }).join('')}
+            </tbody>
+          </table>` : `<div class="empty-state">No warm transfers for Juan in this period.</div>`}
         </div>
 
         ${renderFooter()}
