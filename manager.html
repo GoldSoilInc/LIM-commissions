@@ -1175,7 +1175,6 @@ function renderLoading() {
       const jMembers = jp.members, jPrequal = jp.pqPhone;
       const jBand = bandOf[MANAGER] || bandFor(jMembers, jPrequal);
       const jRatio = jBand.ratio === null ? '\u2014' : Math.round(jBand.ratio).toLocaleString('en-US');
-      const jGoals = [['TOP TARGET', Math.round(jMembers / GOAL_TOP), GOAL_TOP], ['OPTIMAL', Math.round(jMembers / GOAL_OPTIMAL), GOAL_OPTIMAL], ['BARE MINIMUM', Math.round(jMembers / GOAL_MIN), GOAL_MIN]];
 
       // Juan's weekly goal attainment (his members / 700 vs his pre-qualified) — personal target, no bonus.
       const jWeeks = [];
@@ -1257,11 +1256,12 @@ function renderLoading() {
 
         <div class="section">
           <h2>GOALS \u00b7 PRE-QUALIFIED</h2>
+          <div style="font-family:var(--font-body); font-size:10px; color:var(--gs-faint); margin:-4px 0 8px;">Team-wide target (same as the team dashboard) \u00b7 team pre-qualified: <b>${a.prequal}</b> of ${a.members.toLocaleString('en-US')} members</div>
           <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px;">
-            ${jGoals.map(([lbl, goal, div]) => {
-              const hit = jPrequal >= goal && goal > 0;
+            ${[['TOP TARGET', a.goalTop, GOAL_TOP], ['OPTIMAL', a.goalOptimal, GOAL_OPTIMAL], ['BARE MINIMUM', a.goalMin, GOAL_MIN]].map(([lbl, goal, div]) => {
+              const hit = a.prequal >= goal && goal > 0;
               return `<div style="background:${hit ? 'var(--gs-dark-green)' : 'var(--gs-cream)'}; border:1px solid ${hit ? 'var(--gs-dark-green)' : 'var(--gs-border-soft)'}; border-radius:8px; padding:12px 16px;">
-                <div style="font-family:var(--font-display); font-size:10px; letter-spacing:1.5px; font-weight:bold; color:var(--gs-gold);">${lbl}</div>
+                <div style="font-family:var(--font-display); font-size:10px; letter-spacing:1.5px; font-weight:bold; color:var(--gs-gold);">${lbl}${lbl === 'OPTIMAL' ? ' \u00b7 bonus gate' : ''}</div>
                 <div style="font-family:var(--font-display); font-size:30px; font-weight:bold; line-height:1.1; color:${hit ? 'var(--gs-cream)' : 'var(--gs-dark-green)'};">${goal}</div>
                 <div style="font-family:var(--font-body); font-size:9px; color:${hit ? 'var(--gs-cream)' : 'var(--gs-faint)'};">members \u00f7 ${div}${hit ? ' \u00b7 \u2713 hit' : ''}</div>
               </div>`;
