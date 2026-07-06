@@ -953,7 +953,7 @@ function renderLoading() {
     const CM_SHIFT = 1, WT_SHIFT = 1, PQ_SHIFT = 0;
     // Column indexes (0-based). Adjust only if a tab's layout changes.
     const CM_DATE = 0, CM_OWNER = 1, CM_MEMBERS = 3;         // Campaign Members: A Start Date | B Owner | D Actual Campaign Members
-    const WT_DATE = 0, WT_TEXT = 1, WT_PHONE = 2;            // Warm Transfers: A Created Date | B Sourcer (Text) | C Sourcer (Phone)
+    const WT_DATE = 0, WT_TEXT = 1, WT_PHONE = 2, WT_NAME = 3, WT_STATUS = 6, WT_URL = 7;   // + G Lead Status | H Lead URL
     const PQ_DATE = 0, PQ_FIRST = 2, PQ_TEXT = 3, PQ_PHONE = 4, PQ_LAST = 5;  // PreQualified: A Date | C First | D Sourcer(Text) | E Sourcer(Phone) | F Last
 
     let CAMPAIGN_ROWS = [], TRANSFER_ROWS = [], PREQUAL_ROWS = [];
@@ -1021,7 +1021,8 @@ function renderLoading() {
       const ensure = (n) => { if (!people[n]) people[n] = { members: 0, warmT: 0, warmTPhone: 0, pqText: 0, pqPhone: 0, phones: {}, texts: {} }; return people[n]; };
       let members = 0, warmTransfers = 0, prequal = 0;
       const dayset = new Set();
-      const leads = [];   // per pre-qualified lead: { name, tx, ph }
+      const leads = [];      // per pre-qualified lead: { name, tx, ph }  (drives pay)
+      const transfers = [];  // per warm transfer: { name, status, url, tx, ph }  (drives the expand list)
 
       for (const r of CAMPAIGN_ROWS) {
         const o = (r[CM_OWNER] || '').trim(); const dt = normDate(r[CM_DATE], CM_SHIFT);
@@ -1035,6 +1036,8 @@ function renderLoading() {
         if (dt < f || dt > tISO) continue;
         if (tx) ensure(tx).warmT += 1;
         if (ph) ensure(ph).warmTPhone += 1;
+        const nm = [r[WT_NAME]].map(v => String(v || '').trim()).filter(v => v && !/^[-\u2013\u2014.\s]+$/.test(v)).join(' ') || '(unnamed lead)';
+        transfers.push({ name: nm, status: String(r[WT_STATUS] || '').trim(), url: String(r[WT_URL] || '').trim(), tx, ph });
         warmTransfers += 1; dayset.add(dt);
       }
       for (const r of PREQUAL_ROWS) {
@@ -1043,12 +1046,15 @@ function renderLoading() {
         const p = ensure(tx); p.pqText += 1; ensure(ph).pqPhone += 1;
         p.phones[ph] = (p.phones[ph] || 0) + 1;      // texter -> callers
         ensure(ph).texts[tx] = (ensure(ph).texts[tx] || 0) + 1;   // caller -> texters
-        const name = ((r[PQ_FIRST] || '') + ' ' + (r[PQ_LAST] || '')).trim() || '(unnamed lead)';
+        const nm = [r[PQ_FIRST], r[PQ_LAST]]
+          .map(v => String(v || '').trim())
+          .filter(v => v && !/^[-\u2013\u2014.\s]+$/.test(v));   // drop empty or placeholder ("-", ".") parts
+        const name = nm.join(' ').trim() || '(unnamed lead)';
         leads.push({ name, tx, ph });
         prequal += 1; dayset.add(dt);
       }
       return {
-        members, warmTransfers, prequal, days: dayset.size, people, leads,
+        members, warmTransfers, prequal, days: dayset.size, people, leads, transfers,
         goalTop: Math.round(members / GOAL_TOP), goalOptimal: Math.round(members / GOAL_OPTIMAL), goalMin: Math.round(members / GOAL_MIN)
       };
     }
@@ -1067,7 +1073,13 @@ function renderLoading() {
         ensurePay(L.ph).phonePay += b.phoneShare;
       }
       let teamBase = 0;
-      Object.keys(pay).forEach(n => { pay[n].base = pay[n].phonePay + pay[n].textPay; teamBase += pay[n].base; });
+      Object.keys(pay).forEach(n => {
+        // A person in the >800 band (bare minimum not met, or no pre-qualified-as-phone) earns $0 —
+        // including any text credit for leads they texted that someone else phone-sourced.
+        const b = bandOf[n];
+        if (!b || b.total === 0) { pay[n].phonePay = 0; pay[n].textPay = 0; }
+        pay[n].base = pay[n].phonePay + pay[n].textPay; teamBase += pay[n].base;
+      });
       return { pay, teamBase, bandOf };
     }
 
