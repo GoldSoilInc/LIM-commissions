@@ -1067,7 +1067,13 @@ function renderLoading() {
         ensurePay(L.ph).phonePay += b.phoneShare;
       }
       let teamBase = 0;
-      Object.keys(pay).forEach(n => { pay[n].base = pay[n].phonePay + pay[n].textPay; teamBase += pay[n].base; });
+      Object.keys(pay).forEach(n => {
+        // A person in the >800 band (bare minimum not met, or no pre-qualified-as-phone) earns $0 —
+        // including any text credit for leads they texted that someone else phone-sourced.
+        const b = bandOf[n];
+        if (!b || b.total === 0) { pay[n].phonePay = 0; pay[n].textPay = 0; }
+        pay[n].base = pay[n].phonePay + pay[n].textPay; teamBase += pay[n].base;
+      });
       return { pay, teamBase, bandOf };
     }
 
@@ -1189,7 +1195,8 @@ function renderLoading() {
         (leadsByText[n] || []).forEach(L => {
           if (L.ph === n) return;   // self already listed
           const b = bandOf[L.ph];
-          detail.push({ name: L.name, amt: b.textShare, tag: creditTag, note: 'called by ' + L.ph });
+          const amt = (band.total === 0) ? 0 : b.textShare;   // texter forfeits credit if their own ratio is >800
+          detail.push({ name: L.name, amt, tag: creditTag, note: 'called by ' + L.ph });
         });
 
         const detailId = 'lead_' + idx;
