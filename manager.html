@@ -1148,7 +1148,8 @@ function renderLoading() {
       let star = { name: '\u2014', count: 0 };
       Object.keys(monthAgg.people).forEach(n => { if (monthAgg.people[n].pqPhone > star.count) star = { name: n, count: monthAgg.people[n].pqPhone }; });
       const starActive = star.count > 0;
-      const starPayable = iso(state.to) >= iso(mw.lastMon);       // in the final week of the month (its last Monday onward)
+      const monthEnd = new Date(state.to.getFullYear(), state.to.getMonth() + 1, 0);  // last calendar day of the viewed month
+      const starPayable = iso(state.to) >= iso(monthEnd);       // reveal only on the last day of the month
       const starBonusTotal = (starActive && starPayable) ? STAR_BONUS : 0;
 
       const names = [...ROSTER];
