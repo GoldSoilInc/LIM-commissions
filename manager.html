@@ -895,6 +895,144 @@ function renderLoading() {
 </head>
 <body>
   <div id="root"></div>
+  <!-- ===== DEFINITIONS MODAL ===== -->
+  <div id="defs-modal" onclick="if(event.target===this)this.style.display='none'"
+       style="display:none; position:fixed; inset:0; z-index:1000; background:rgba(26,71,42,0.55);
+              align-items:flex-start; justify-content:center; padding:32px 16px; overflow-y:auto;">
+    <div onclick="event.stopPropagation()"
+         style="background:var(--gs-cream); max-width:760px; width:100%; border-radius:12px;
+                border:2px solid var(--gs-gold); box-shadow:0 18px 50px rgba(0,0,0,0.35); overflow:hidden;">
+
+      <!-- header -->
+      <div style="background:var(--gs-dark-green); padding:20px 28px; display:flex; align-items:center; justify-content:space-between;">
+        <div>
+          <div style="font-family:var(--font-display); font-weight:bold; font-size:20px; color:var(--gs-cream); letter-spacing:0.5px;">How Pay Is Calculated</div>
+          <div style="font-family:var(--font-body); font-size:11px; color:var(--gs-gold); margin-top:3px;">Team pay + manager pay, defined</div>
+        </div>
+        <button type="button" onclick="document.getElementById('defs-modal').style.display='none'"
+                style="background:none; border:none; color:var(--gs-cream); font-size:26px; line-height:1; cursor:pointer; padding:0 4px;">&times;</button>
+      </div>
+
+      <div style="padding:8px 28px 28px; font-family:var(--font-body); color:#2a2a2a; font-size:13px; line-height:1.6;">
+
+        <!-- 1. Reward Bands -->
+        <h3 style="font-family:var(--font-display); color:var(--gs-dark-green); font-size:15px; letter-spacing:0.5px; margin:22px 0 6px; border-bottom:2px solid var(--gs-gold); padding-bottom:5px;">1 &middot; Reward Bands</h3>
+        <p style="margin:6px 0;">Every pre-qualified lead pays out a dollar reward. The size of that reward is set by the <b>phone sourcer&rsquo;s ratio</b> for the period:</p>
+        <p style="margin:6px 0; background:#fff; border-left:3px solid var(--gs-gold); padding:8px 12px; font-family:var(--font-display);">Ratio = that person&rsquo;s campaign members &divide; their pre-qualified leads (as phone sourcer)</p>
+        <p style="margin:6px 0;">A <b>lower ratio</b> (fewer members needed per pre-qualified lead) earns a <b>higher reward</b>:</p>
+        <table style="width:100%; border-collapse:collapse; margin:8px 0; font-size:12.5px;">
+          <thead>
+            <tr style="background:var(--gs-dark-green); color:var(--gs-gold); font-family:var(--font-display);">
+              <th style="text-align:left; padding:7px 10px;">Ratio</th>
+              <th style="text-align:right; padding:7px 10px;">Total / lead</th>
+              <th style="text-align:right; padding:7px 10px;">Text share</th>
+              <th style="text-align:right; padding:7px 10px;">Phone share</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="background:#fff;"><td style="padding:6px 10px;">Below 600</td><td style="text-align:right; padding:6px 10px; font-weight:bold; color:var(--gs-dark-green);">$4.00</td><td style="text-align:right; padding:6px 10px;">$1.00</td><td style="text-align:right; padding:6px 10px;">$3.00</td></tr>
+            <tr style="background:#f5f0e1;"><td style="padding:6px 10px;">600 &ndash; 700</td><td style="text-align:right; padding:6px 10px; font-weight:bold; color:var(--gs-dark-green);">$3.00</td><td style="text-align:right; padding:6px 10px;">$1.00</td><td style="text-align:right; padding:6px 10px;">$2.00</td></tr>
+            <tr style="background:#fff;"><td style="padding:6px 10px;">700 &ndash; 800</td><td style="text-align:right; padding:6px 10px; font-weight:bold; color:var(--gs-dark-green);">$1.50</td><td style="text-align:right; padding:6px 10px;">$0.50</td><td style="text-align:right; padding:6px 10px;">$1.00</td></tr>
+            <tr style="background:#f5f0e1;"><td style="padding:6px 10px;">Above 800</td><td style="text-align:right; padding:6px 10px; font-weight:bold; color:#8a2a2a;">$0.00</td><td style="text-align:right; padding:6px 10px;">&mdash;</td><td style="text-align:right; padding:6px 10px;">&mdash;</td></tr>
+          </tbody>
+        </table>
+        <p style="margin:6px 0;"><b>A ratio above 800 forfeits everything</b> for that person &mdash; including any text credits they would have earned on other people&rsquo;s leads. The forfeited money is not shifted to anyone else.</p>
+        <p style="margin:6px 0; color:#555;"><i>A lead counts as &ldquo;pre-qualified&rdquo; when its <b>Date Pre-Qualified</b> cell (column L of the Warm Transfers report) has any value &mdash; regardless of its Lead Status.</i></p>
+
+        <!-- 2. Pre-Qualify $ -->
+        <h3 style="font-family:var(--font-display); color:var(--gs-dark-green); font-size:15px; letter-spacing:0.5px; margin:22px 0 6px; border-bottom:2px solid var(--gs-gold); padding-bottom:5px;">2 &middot; Pre-Qualify $</h3>
+        <p style="margin:6px 0;">For each pre-qualified lead, the reward is split between the two people who worked it:</p>
+        <ul style="margin:6px 0 6px 18px; padding:0;">
+          <li style="margin:3px 0;">The <b>Text sourcer</b> earns the <b>Text share</b>.</li>
+          <li style="margin:3px 0;">The <b>Phone sourcer</b> earns the <b>Phone share</b>.</li>
+        </ul>
+        <p style="margin:6px 0;">Both shares are read from the <b>phone sourcer&rsquo;s band</b> &mdash; the caller&rsquo;s ratio sets the price of the lead. If the same person both texted and called a lead, they earn the full band amount. If the phone sourcer&rsquo;s ratio is above 800, the whole lead pays <b>$0</b> and the texter&rsquo;s credit is forfeited too.</p>
+        <p style="margin:6px 0; background:#fff; border-left:3px solid var(--gs-gold); padding:8px 12px; font-family:var(--font-display);">A person&rsquo;s Pre-Qualify $ = the sum of all their text shares + phone shares across the period.</p>
+
+        <!-- 3. Targets -->
+        <h3 style="font-family:var(--font-display); color:var(--gs-dark-green); font-size:15px; letter-spacing:0.5px; margin:22px 0 6px; border-bottom:2px solid var(--gs-gold); padding-bottom:5px;">3 &middot; Targets</h3>
+        <p style="margin:6px 0;">Targets are pre-qualified-lead goals, scaled to the number of campaign members (more members &rarr; more pre-qualified leads expected). Both are rounded down:</p>
+        <ul style="margin:6px 0 6px 18px; padding:0;">
+          <li style="margin:3px 0;"><b>Top Target</b> = members &divide; 600</li>
+          <li style="margin:3px 0;"><b>Optimal</b> = members &divide; 700</li>
+        </ul>
+        <p style="margin:6px 0;">Hitting <b>Top Target</b> means a strong conversion &mdash; few members needed per pre-qualified lead, which is also the band that pays the most per lead.</p>
+
+        <!-- 4. Weekly Bonus Target -->
+        <h3 style="font-family:var(--font-display); color:var(--gs-dark-green); font-size:15px; letter-spacing:0.5px; margin:22px 0 6px; border-bottom:2px solid var(--gs-gold); padding-bottom:5px;">4 &middot; Weekly Bonus Target</h3>
+        <p style="margin:6px 0;">Each week the team has a pre-qualified goal that unlocks the weekly bonus:</p>
+        <p style="margin:6px 0; background:#fff; border-left:3px solid var(--gs-gold); padding:8px 12px; font-family:var(--font-display);">Weekly Bonus Target = the team&rsquo;s members that week &divide; 700 (rounded down) &mdash; the Optimal goal.</p>
+        <p style="margin:6px 0;">If the team&rsquo;s weekly pre-qualified count reaches <b>Top Target</b> (members &divide; 600) instead, the bonus <b>rate goes up</b> (see section 6).</p>
+
+        <!-- 5. How to qualify -->
+        <h3 style="font-family:var(--font-display); color:var(--gs-dark-green); font-size:15px; letter-spacing:0.5px; margin:22px 0 6px; border-bottom:2px solid var(--gs-gold); padding-bottom:5px;">5 &middot; How to Qualify for the Weekly Bonus</h3>
+        <p style="margin:6px 0;">Three conditions must all be true:</p>
+        <ol style="margin:6px 0 6px 18px; padding:0;">
+          <li style="margin:4px 0;"><b>Team gate</b> &mdash; the team&rsquo;s total pre-qualified for the week reaches the Weekly Bonus Target (members &divide; 700).</li>
+          <li style="margin:4px 0;"><b>Be active that week</b> &mdash; you had some activity (campaign members, a warm transfer as caller, or a pre-qualified lead as texter or caller). Anyone out the <b>entire</b> week does not qualify for that week&rsquo;s bonus.</li>
+          <li style="margin:4px 0;"><b>Juan is excluded</b> &mdash; as manager, he does not draw the team weekly bonus; his pay is handled separately on the manager page.</li>
+        </ol>
+
+        <!-- 6. Weekly Bonus $ -->
+        <h3 style="font-family:var(--font-display); color:var(--gs-dark-green); font-size:15px; letter-spacing:0.5px; margin:22px 0 6px; border-bottom:2px solid var(--gs-gold); padding-bottom:5px;">6 &middot; Weekly Bonus $</h3>
+        <p style="margin:6px 0;">When the team clears the weekly gate, every <b>active</b> team member earns a flat bonus for that week:</p>
+        <ul style="margin:6px 0 6px 18px; padding:0;">
+          <li style="margin:3px 0;"><b>$16</b> for the week if the team hit <b>Top Target</b> (members &divide; 600)</li>
+          <li style="margin:3px 0;"><b>$15</b> for the week if the team hit <b>Optimal</b> (members &divide; 700) but not Top</li>
+          <li style="margin:3px 0;"><b>$0</b> if the team is below Optimal</li>
+        </ul>
+        <p style="margin:6px 0; background:#fff; border-left:3px solid var(--gs-gold); padding:8px 12px; font-family:var(--font-display);">Your Weekly Bonus $ = the sum of these weekly amounts across every week you were active and the team cleared the gate.</p>
+        <p style="margin:6px 0; color:#555;"><i>It&rsquo;s a flat amount per person per qualifying week &mdash; not per member.</i></p>
+
+        <!-- 7. Star of the Month -->
+        <h3 style="font-family:var(--font-display); color:var(--gs-dark-green); font-size:15px; letter-spacing:0.5px; margin:22px 0 6px; border-bottom:2px solid var(--gs-gold); padding-bottom:5px;">7 &middot; Star of the Month</h3>
+        <p style="margin:6px 0;">Each month, the top pre-qualifier wins <b>Star of the Month</b> and a <b>$50</b> bonus.</p>
+        <ul style="margin:6px 0 6px 18px; padding:0;">
+          <li style="margin:3px 0;"><b>Winner</b> = the person with the most pre-qualified leads for the whole month (counted month-to-date).</li>
+          <li style="margin:3px 0;">The winner&rsquo;s name and the $50 are <b>revealed only on the last calendar day of the month</b>, once the month is final.</li>
+        </ul>
+
+        <!-- 8. Potential Star -->
+        <h3 style="font-family:var(--font-display); color:var(--gs-dark-green); font-size:15px; letter-spacing:0.5px; margin:22px 0 6px; border-bottom:2px solid var(--gs-gold); padding-bottom:5px;">8 &middot; Potential Star of the Month</h3>
+        <p style="margin:6px 0;">Before the month&rsquo;s last day, the dashboard shows a live standing instead of a winner:</p>
+        <ul style="margin:6px 0 6px 18px; padding:0;">
+          <li style="margin:3px 0;">The <b>top 2</b> people by month-to-date pre-qualified count, with their running counts.</li>
+          <li style="margin:3px 0;">No money is awarded yet &mdash; it&rsquo;s just who&rsquo;s ahead. On the last day of the month the leader becomes the official Star and receives the $50.</li>
+        </ul>
+
+
+        <!-- 9. Own Earnings -->
+        <h3 style="font-family:var(--font-display); color:var(--gs-dark-green); font-size:15px; letter-spacing:0.5px; margin:22px 0 6px; border-bottom:2px solid var(--gs-gold); padding-bottom:5px;">9 &middot; Own Earnings (Juan)</h3>
+        <p style="margin:6px 0;">Juan&rsquo;s own earnings come from the leads he personally works &mdash; using the same bands as everyone else (sections 1&nbsp;&amp;&nbsp;2):</p>
+        <ul style="margin:6px 0 6px 18px; padding:0;">
+          <li style="margin:3px 0;">His <b>Pre-Qualify $</b> &mdash; the text and phone shares from leads he sourced.</li>
+          <li style="margin:3px 0;">Plus <b>Star of the Month</b> ($50) if he wins it that month.</li>
+        </ul>
+        <p style="margin:6px 0;">He does <b>not</b> draw the weekly team bonus &mdash; as manager he is excluded from it (section 5).</p>
+
+        <!-- 10. Team Override -->
+        <h3 style="font-family:var(--font-display); color:var(--gs-dark-green); font-size:15px; letter-spacing:0.5px; margin:22px 0 6px; border-bottom:2px solid var(--gs-gold); padding-bottom:5px;">10 &middot; Team Override (15% / 18%)</h3>
+        <p style="margin:6px 0;">On top of his own earnings, Juan earns an <b>override</b> on the rest of the team&rsquo;s pre-qualify production:</p>
+        <p style="margin:6px 0; background:#fff; border-left:3px solid var(--gs-gold); padding:8px 12px; font-family:var(--font-display);">Override = a percentage of the <b>other reps&rsquo; combined Pre-Qualify $</b> (the whole team&rsquo;s pre-qualify pay, minus Juan&rsquo;s own).</p>
+        <p style="margin:6px 0;">The rate depends on how the team did that period:</p>
+        <ul style="margin:6px 0 6px 18px; padding:0;">
+          <li style="margin:3px 0;"><b>15%</b> &mdash; the standard rate.</li>
+          <li style="margin:3px 0;"><b>18%</b> &mdash; when the team <b>hits Top Target</b> for the period (team pre-qualified &ge; members &divide; 600).</li>
+        </ul>
+
+        <!-- Manager payout unlock -->
+        <h3 style="font-family:var(--font-display); color:var(--gs-dark-green); font-size:15px; letter-spacing:0.5px; margin:22px 0 6px; border-bottom:2px solid var(--gs-gold); padding-bottom:5px;">Manager Payout &mdash; when it unlocks</h3>
+        <p style="margin:6px 0; background:#fff; border-left:3px solid var(--gs-gold); padding:8px 12px; font-family:var(--font-display);">Juan&rsquo;s Payout = Own Earnings + Team Override.</p>
+        <p style="margin:6px 0;">The payout only <b>unlocks when the team hits quota</b>: <b>every</b> week in the selected period must clear its Weekly Bonus Target (members &divide; 700). Until every week clears, the payout stays locked and the panel shows what it &ldquo;would be&rdquo; once the team hits quota.</p>
+
+        <div style="text-align:center; margin-top:24px;">
+          <button type="button" onclick="document.getElementById('defs-modal').style.display='none'"
+                  style="font-family:var(--font-display); font-weight:bold; font-size:12px; letter-spacing:1px; text-transform:uppercase; color:var(--gs-cream); background:var(--gs-dark-green); border:none; border-radius:16px; padding:9px 26px; cursor:pointer;">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
 
   <script>
     // ============================================
@@ -949,7 +1087,7 @@ function renderLoading() {
     }
 
     const MANAGER = 'Juan Pablo Larrea';   // excluded from team bonus; has own manager pay (separate page)
-    const OVERRIDE_RATE = 0.15;
+    const OVERRIDE_RATE = 0.15, OVERRIDE_RATE_TOP = 0.18;   // 18% when the team hits Top Target, else 15%
     // Per-tab date correction (Salesforce stamps date fields at 00:00 UTC -> CT shows prior day).
     const CM_SHIFT = 1, WT_SHIFT = 1, PQ_SHIFT = 0;
     // Column indexes (0-based). Adjust only if a tab's layout changes.
@@ -1122,9 +1260,12 @@ function renderLoading() {
       const rangeLabel = iso(state.from) === iso(state.to) ? fmt(state.from) : `${fmt(state.from)} \u2013 ${fmt(state.to)}`;
       return `
         <div class="gs-filter">
-          <div class="gs-filter-row">
-            <span class="gs-filter-label">PERIOD</span>
-            <div class="gs-pills">${pills}</div>
+          <div class="gs-filter-row" style="justify-content:space-between; align-items:center;">
+            <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+              <span class="gs-filter-label">PERIOD</span>
+              <div class="gs-pills">${pills}</div>
+            </div>
+            <button type="button" onclick="document.getElementById('defs-modal').style.display='flex'" style="font-family:var(--font-display); font-weight:bold; font-size:10px; letter-spacing:1px; text-transform:uppercase; color:var(--gs-dark-green); background:var(--gs-cream); border:1px solid var(--gs-gold); border-radius:14px; padding:6px 14px; cursor:pointer; white-space:nowrap;">&#9432; How pay is calculated</button>
           </div>
           <div class="gs-filter-row">
             <div class="gs-range">
@@ -1167,7 +1308,11 @@ function renderLoading() {
       const mgrStar = (STAR_ENABLED && mgrIsStar && starPayable) ? STAR_BONUS : 0;     // Juan gets NO weekly team bonus (excluded); star paused for now
       const ownEarnings = mgrOwn + mgrStar;
       const othersProd = teamBase - mgrOwn;                            // other reps' pre-qualify pay
-      const override = othersProd * OVERRIDE_RATE;
+      // Override rate steps up to 18% when the team hits Top Target (pre-qualified >= members / 600) for the period.
+      const teamHitTop = a.goalTop > 0 && a.prequal >= a.goalTop;
+      const overrideRate = teamHitTop ? OVERRIDE_RATE_TOP : OVERRIDE_RATE;
+      const overridePct = Math.round(overrideRate * 100);
+      const override = othersProd * overrideRate;
       const teamHitQuota = wb.weeks.length > 0 && wb.weeks.every(w => w.met);
       const mgrEarned = ownEarnings + override;
       const mgrPayout = teamHitQuota ? mgrEarned : 0;
@@ -1237,9 +1382,9 @@ function renderLoading() {
             </div>
             <div style="font-family:var(--font-display); font-size:22px; color:var(--gs-gold);">+</div>
             <div>
-              <div style="font-family:var(--font-display); font-size:10px; letter-spacing:1.5px; color:var(--gs-gold); font-weight:bold;">15% TEAM OVERRIDE</div>
+              <div style="font-family:var(--font-display); font-size:10px; letter-spacing:1.5px; color:var(--gs-gold); font-weight:bold;">${overridePct}% TEAM OVERRIDE${teamHitTop ? ' \u2605' : ''}</div>
               <div style="font-family:var(--font-display); font-size:26px; color:var(--gs-cream); font-weight:bold; line-height:1.1;">${fmtUSD(override)}</div>
-              <div style="font-family:var(--font-body); font-size:9px; color:var(--gs-cream); opacity:0.7;">15% of ${fmtUSD(othersProd)} (other reps)</div>
+              <div style="font-family:var(--font-body); font-size:9px; color:var(--gs-cream); opacity:0.7;">${overridePct}% of ${fmtUSD(othersProd)} (other reps)${teamHitTop ? ' \u00b7 Top Target hit' : ''}</div>
             </div>
             <div style="font-family:var(--font-display); font-size:22px; color:var(--gs-gold);">=</div>
             <div style="flex:1; min-width:180px;">
