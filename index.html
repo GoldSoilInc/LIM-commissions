@@ -1,0 +1,1441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LIM Commission — GoldSoil Status</title>
+  <style id="gs-brand">
+/* ============================================
+   GoldSoil Status Cards — Brand Stylesheet
+   One source of truth for all team cards
+   ============================================ */
+
+:root {
+  --gs-dark-green: #1A472A;
+  --gs-dark-green-light: #2A6B40;
+  --gs-gold: #C4A22F;
+  --gs-cream: #F5F0E1;
+  --gs-cream-light: #FFF8E1;
+  --gs-text: #333333;
+  --gs-muted: #666666;
+  --gs-faint: #888888;
+  --gs-border: #E5E5E5;
+  --gs-border-soft: #CCCCCC;
+
+  --font-display: Georgia, 'Times New Roman', serif;
+  --font-body: Arial, Helvetica, sans-serif;
+
+  --radius-lg: 12px;
+  --radius-md: 8px;
+  --radius-sm: 4px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  font-family: var(--font-body);
+  background: #F8F8F8;
+  margin: 0;
+  padding: 24px;
+  color: var(--gs-text);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Refresh bar above card */
+.refresh-bar {
+  width: 100%;
+  max-width: 720px;
+  margin-bottom: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--gs-muted);
+}
+
+.refresh-bar button {
+  background: var(--gs-dark-green);
+  color: var(--gs-gold);
+  border: none;
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+}
+
+.refresh-bar button:hover {
+  background: var(--gs-dark-green-light);
+}
+
+.refresh-bar .last-updated {
+  font-style: italic;
+}
+
+/* The card */
+.card {
+  background: #FFFFFF;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  max-width: 720px;
+  width: 100%;
+}
+
+/* Header */
+.card-header {
+  background: var(--gs-dark-green);
+  padding: 18px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 4px solid var(--gs-gold);
+}
+
+.card-header .brand {
+  font-family: var(--font-display);
+  font-weight: bold;
+  font-size: 11px;
+  color: var(--gs-gold);
+  letter-spacing: 2px;
+  margin-bottom: 4px;
+}
+
+.card-header h1 {
+  font-family: var(--font-display);
+  font-weight: bold;
+  font-size: 22px;
+  color: #FFFFFF;
+  line-height: 1;
+  margin: 0;
+}
+
+.card-header .lead-block {
+  text-align: right;
+}
+
+.card-header .lead-label {
+  font-family: var(--font-body);
+  font-size: 11px;
+  color: var(--gs-gold);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.card-header .lead-name {
+  font-family: var(--font-body);
+  font-weight: bold;
+  font-size: 14px;
+  color: #FFFFFF;
+}
+
+/* Time-slot strip */
+.time-strip {
+  background: var(--gs-cream);
+  padding: 10px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 0.5px solid var(--gs-border);
+}
+
+.time-strip .label {
+  font-family: var(--font-body);
+  font-size: 10px;
+  color: var(--gs-faint);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-right: 8px;
+}
+
+.time-strip .pills {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.time-strip .pill {
+  background: #FFFFFF;
+  color: var(--gs-faint);
+  border: 1px solid var(--gs-border-soft);
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-family: var(--font-body);
+  font-size: 11px;
+}
+
+.time-strip .pill.active {
+  background: var(--gs-dark-green);
+  color: var(--gs-gold);
+  border-color: var(--gs-dark-green);
+  font-weight: bold;
+}
+
+.time-strip .date {
+  font-family: var(--font-body);
+  font-size: 11px;
+  color: var(--gs-dark-green);
+  font-weight: bold;
+}
+
+/* Hero KPI strip */
+.kpi-strip {
+  display: grid;
+  border-bottom: 0.5px solid var(--gs-border);
+}
+
+.kpi-cell {
+  padding: 18px 16px;
+  text-align: center;
+  border-right: 0.5px solid var(--gs-border);
+}
+
+.kpi-cell:last-child { border-right: none; }
+
+.kpi-cell.accent { background: var(--gs-cream); }
+.kpi-cell.accent .kpi-label { color: var(--gs-dark-green); font-weight: bold; }
+
+.kpi-cell.hero { background: var(--gs-dark-green); }
+.kpi-cell.hero .kpi-value { color: var(--gs-gold); }
+.kpi-cell.hero .kpi-label { color: var(--gs-gold); font-weight: bold; }
+
+.kpi-value {
+  font-family: var(--font-display);
+  font-weight: bold;
+  font-size: 32px;
+  color: var(--gs-dark-green);
+  line-height: 1;
+}
+
+.kpi-label {
+  font-family: var(--font-body);
+  font-size: 10px;
+  color: var(--gs-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 6px;
+}
+
+/* Hero block (used for LIM target vs actual) */
+.hero-block {
+  padding: 18px 20px;
+  background: linear-gradient(135deg, var(--gs-dark-green) 0%, var(--gs-dark-green-light) 100%);
+  border-right: 0.5px solid var(--gs-border);
+}
+
+.hero-block .label {
+  font-family: var(--font-body);
+  font-size: 10px;
+  color: var(--gs-gold);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-bottom: 4px;
+}
+
+.hero-block .value-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.hero-block .value-big {
+  font-family: var(--font-display);
+  font-weight: bold;
+  font-size: 40px;
+  color: var(--gs-gold);
+  line-height: 1;
+}
+
+.hero-block .value-target {
+  font-family: var(--font-display);
+  font-size: 22px;
+  color: var(--gs-cream);
+  line-height: 1;
+}
+
+.hero-block .badge {
+  display: inline-block;
+  background: var(--gs-gold);
+  color: var(--gs-dark-green);
+  padding: 3px 10px;
+  border-radius: 10px;
+  font-family: var(--font-body);
+  font-size: 10px;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+  margin-top: 8px;
+}
+
+/* Section headers */
+.section {
+  padding: 18px 24px 4px;
+}
+
+.section h2 {
+  font-family: var(--font-display);
+  font-weight: bold;
+  font-size: 12px;
+  color: var(--gs-gold);
+  letter-spacing: 1.5px;
+  margin: 0 0 8px 0;
+}
+
+/* Tables */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-body);
+  font-size: 12px;
+}
+
+table thead tr {
+  background: var(--gs-dark-green);
+}
+
+table th {
+  text-align: left;
+  padding: 8px 10px;
+  color: var(--gs-gold);
+  font-weight: bold;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+}
+
+table th.num { text-align: right; }
+
+table td {
+  padding: 8px 10px;
+  color: var(--gs-text);
+  border-bottom: 0.5px solid var(--gs-border);
+}
+
+table td.num { text-align: right; }
+table td.label { font-weight: bold; color: var(--gs-dark-green); }
+table td.highlight { color: var(--gs-dark-green); font-weight: bold; }
+table td.gold { color: var(--gs-gold); font-weight: bold; }
+
+table tbody tr:nth-child(even) { background: var(--gs-cream); }
+
+table tbody tr.total {
+  background: var(--gs-dark-green);
+}
+
+table tbody tr.total td {
+  color: var(--gs-gold);
+  font-weight: bold;
+  border-bottom: none;
+}
+
+/* Inline text section (counties top list, channel split, etc) */
+.inline-stat {
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--gs-text);
+  line-height: 1.7;
+}
+
+.inline-stat .label-bold {
+  color: var(--gs-dark-green);
+  font-weight: bold;
+}
+
+/* Flags / Needs Anshul */
+.flags {
+  margin: 16px 24px;
+  background: var(--gs-cream-light);
+  border-left: 5px solid var(--gs-gold);
+  padding: 12px 16px;
+}
+
+.flags .flag-label {
+  font-family: var(--font-display);
+  font-weight: bold;
+  font-size: 11px;
+  color: var(--gs-gold);
+  letter-spacing: 1.5px;
+  margin-bottom: 4px;
+}
+
+.flags .flag-body {
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--gs-text);
+  line-height: 1.5;
+}
+
+.flags .flag-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.flags .flag-edit-btn {
+  background: transparent;
+  border: 1px solid var(--gs-gold);
+  color: var(--gs-gold);
+  font-family: var(--font-display);
+  font-size: 10px;
+  letter-spacing: 1px;
+  padding: 3px 10px;
+  cursor: pointer;
+  border-radius: 2px;
+}
+
+.flags .flag-edit-btn:hover {
+  background: var(--gs-gold);
+  color: white;
+}
+
+.flags .flag-edit textarea {
+  width: 100%;
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--gs-text);
+  line-height: 1.5;
+  padding: 8px;
+  border: 1px solid var(--gs-border);
+  border-radius: 2px;
+  background: white;
+  box-sizing: border-box;
+  resize: vertical;
+}
+
+.flags .flag-edit-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.flags .flag-save-btn,
+.flags .flag-cancel-btn {
+  font-family: var(--font-display);
+  font-size: 10px;
+  letter-spacing: 1px;
+  padding: 4px 12px;
+  cursor: pointer;
+  border-radius: 2px;
+  border: 1px solid var(--gs-gold);
+}
+
+.flags .flag-save-btn {
+  background: var(--gs-gold);
+  color: white;
+}
+
+.flags .flag-cancel-btn {
+  background: transparent;
+  color: var(--gs-gold);
+}
+
+/* Footer */
+.card-footer {
+  background: var(--gs-cream);
+  padding: 10px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 0.5px solid var(--gs-border);
+}
+
+.card-footer .org {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 11px;
+  color: var(--gs-dark-green);
+}
+
+.card-footer .posted {
+  font-family: var(--font-body);
+  font-size: 10px;
+  color: var(--gs-faint);
+  letter-spacing: 0.5px;
+}
+
+/* Loading & error states */
+.loading-state, .error-state {
+  padding: 60px 24px;
+  text-align: center;
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--gs-muted);
+}
+
+.error-state {
+  color: #B00020;
+  background: #FFF0F0;
+  border-radius: var(--radius-md);
+  margin: 20px;
+}
+
+/* Landing page */
+.landing {
+  max-width: 720px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.landing-header {
+  background: var(--gs-dark-green);
+  padding: 28px 28px 24px;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  border-bottom: 4px solid var(--gs-gold);
+  text-align: center;
+}
+
+.landing-header .brand {
+  font-family: var(--font-display);
+  font-weight: bold;
+  font-size: 12px;
+  color: var(--gs-gold);
+  letter-spacing: 3px;
+  margin-bottom: 8px;
+}
+
+.landing-header h1 {
+  font-family: var(--font-display);
+  font-weight: bold;
+  font-size: 28px;
+  color: #FFFFFF;
+  margin: 0 0 6px 0;
+}
+
+.landing-header .tagline {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 14px;
+  color: var(--gs-cream);
+}
+
+.landing-body {
+  background: #FFFFFF;
+  padding: 24px;
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+}
+
+.team-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+
+.team-card-link {
+  display: block;
+  background: #FFFFFF;
+  border: 1px solid var(--gs-border);
+  border-radius: var(--radius-md);
+  padding: 18px 20px;
+  text-decoration: none;
+  color: var(--gs-text);
+  transition: all 0.15s;
+}
+
+.team-card-link:hover {
+  border-color: var(--gs-gold);
+  background: var(--gs-cream);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.06);
+}
+
+.team-card-link .team-name {
+  font-family: var(--font-display);
+  font-weight: bold;
+  font-size: 16px;
+  color: var(--gs-dark-green);
+  margin-bottom: 4px;
+}
+
+.team-card-link .team-lead {
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--gs-muted);
+}
+
+.landing-instructions {
+  margin-top: 20px;
+  background: var(--gs-cream);
+  border-left: 4px solid var(--gs-gold);
+  padding: 14px 18px;
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--gs-text);
+  line-height: 1.6;
+}
+
+.landing-instructions strong {
+  color: var(--gs-dark-green);
+}
+
+@media (max-width: 600px) {
+  body { padding: 12px; }
+  .team-grid { grid-template-columns: 1fr; }
+  .kpi-strip { grid-template-columns: repeat(2, 1fr) !important; }
+}
+
+  </style>
+  <script>
+// ============================================
+// GoldSoil Status Cards — Sheet Loader
+// Reads a published Google Sheet (CSV) and
+// returns a flat key-value object for the card.
+// ============================================
+
+/**
+ * Fetch a published Google Sheet as CSV and parse to {metric: value} object.
+ * Expects the sheet to have two columns: "metric" and "value" (header row).
+ * Any other columns in the sheet are ignored — you can keep extra data there.
+ *
+ * @param {string} csvUrl - Published-to-web CSV URL from Google Sheets
+ * @returns {Promise<Object>} - { campaigns_launched: "7", listings_touched: "5", ... }
+ */
+async function loadSheetData(csvUrl) {
+  const response = await fetch(csvUrl, { cache: 'no-store' });
+  if (!response.ok) {
+    throw new Error(`Failed to fetch sheet (${response.status})`);
+  }
+  const csv = await response.text();
+  return parseCSV(csv);
+}
+
+/**
+ * Parses a 2-column CSV (metric, value) into a key-value object.
+ * Handles quoted fields, commas inside quotes, escaped quotes, AND
+ * newlines embedded inside quoted cells (which Google Sheets emits
+ * when a cell contains line breaks).
+ */
+function parseCSV(csv) {
+  const rows = parseAllRows(csv);
+  if (rows.length < 2) return {};
+
+  const data = {};
+  // Skip the header row (index 0)
+  for (let i = 1; i < rows.length; i++) {
+    const cells = rows[i];
+    if (cells.length >= 2) {
+      const key = cells[0].trim();
+      const value = cells[1].trim();
+      if (key) data[key] = value;
+    }
+  }
+  return data;
+}
+
+/**
+ * Parse a full CSV string into rows, character-by-character, respecting
+ * quoted cells that span multiple lines. Returns an array of arrays.
+ */
+function parseAllRows(csv) {
+  const rows = [];
+  let current = '';
+  let row = [];
+  let inQuotes = false;
+
+  for (let i = 0; i < csv.length; i++) {
+    const c = csv[i];
+    if (c === '"' && csv[i + 1] === '"') {
+      // Escaped quote inside a quoted cell
+      current += '"';
+      i++;
+    } else if (c === '"') {
+      inQuotes = !inQuotes;
+    } else if (c === ',' && !inQuotes) {
+      row.push(current);
+      current = '';
+    } else if ((c === '\n' || c === '\r') && !inQuotes) {
+      // End of row (only outside quotes)
+      // Handle \r\n: skip the \n that follows \r
+      if (c === '\r' && csv[i + 1] === '\n') i++;
+      row.push(current);
+      rows.push(row);
+      row = [];
+      current = '';
+    } else {
+      current += c;
+    }
+  }
+  // Push the last row if there's leftover content
+  if (current.length > 0 || row.length > 0) {
+    row.push(current);
+    rows.push(row);
+  }
+  return rows;
+}
+
+/**
+ * Get a value from the data object, with a fallback if missing.
+ * Treats missing keys as the fallback (default: 0 for numbers, "—" for text).
+ */
+function val(data, key, fallback = '') {
+  const v = data[key];
+  if (v === undefined || v === null || v === '') return fallback;
+  return v;
+}
+
+function num(data, key, fallback = 0) {
+  const v = data[key];
+  if (v === undefined || v === null || v === '') return fallback;
+  const parsed = parseFloat(v);
+  return isNaN(parsed) ? fallback : parsed;
+}
+
+/**
+ * Determine the active time slot based on US Central time.
+ * Returns one of: '10am', '12pm', '2pm', '4pm', '5pm', or null if outside window.
+ */
+function getCurrentTimeSlot() {
+  const now = new Date();
+  // Get current time in Central Time (US)
+  const ctString = now.toLocaleString('en-US', {
+    timeZone: 'America/Chicago',
+    hour12: false,
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+  const [hourStr, minStr] = ctString.split(':');
+  const hour = parseInt(hourStr, 10);
+  const minute = parseInt(minStr, 10);
+  const totalMinutes = hour * 60 + minute;
+
+  // Each slot is "active" from its time until the next slot
+  // 10:00-11:59 = 10am, 12:00-13:59 = 12pm, 14:00-15:59 = 2pm,
+  // 16:00-16:59 = 4pm, 17:00 onward = 5pm
+  if (totalMinutes >= 17 * 60) return '5pm';
+  if (totalMinutes >= 16 * 60) return '4pm';
+  if (totalMinutes >= 14 * 60) return '2pm';
+  if (totalMinutes >= 12 * 60) return '12pm';
+  if (totalMinutes >= 10 * 60) return '10am';
+  return null; // Before 10 AM CT
+}
+
+/** Format the current date as "Wed · Jan 15" */
+function getFormattedDate() {
+  const now = new Date();
+  const opts = { timeZone: 'America/Chicago', weekday: 'short', month: 'short', day: 'numeric' };
+  const parts = now.toLocaleDateString('en-US', opts).replace(',', '').split(' ');
+  // parts = ["Wed", "Jan", "15"] → "Wed · Jan 15"
+  return `${parts[0]} · ${parts[1]} ${parts[2]}`;
+}
+
+/** Render the time slot pill strip. */
+function renderTimeStrip(activeSlot) {
+  const slots = [
+    { id: '10am', label: '10 AM' },
+    { id: '12pm', label: '12 PM' },
+    { id: '2pm', label: '2 PM' },
+    { id: '4pm', label: '4 PM' },
+    { id: '5pm', label: '5 PM+' }
+  ];
+  const date = getFormattedDate();
+  const pills = slots.map(s => {
+    const isActive = s.id === activeSlot;
+    return `<div class="pill${isActive ? ' active' : ''}">${s.label}${isActive ? ' ←' : ''}</div>`;
+  }).join('');
+  return `
+    <div class="time-strip">
+      <div style="display: flex; align-items: center;">
+        <span class="label">Update</span>
+        <div class="pills">${pills}</div>
+      </div>
+      <div class="date">${date}</div>
+    </div>
+  `;
+}
+
+/** Render header */
+function renderHeader(teamName, leadName) {
+  return `
+    <div class="card-header">
+      <div>
+        <div class="brand">GOLDSOIL · TEAM REPORT</div>
+        <h1>${teamName}</h1>
+      </div>
+      <div class="lead-block">
+        <div class="lead-label">Lead</div>
+        <div class="lead-name">${leadName}</div>
+      </div>
+    </div>
+  `;
+}
+
+/** Render footer */
+function renderFooter() {
+  return `
+    <div class="card-footer">
+      <div class="org">GoldSoil Inc. · Round Rock, TX</div>
+      <div class="posted">POSTED IN GOLDSOIL HUB</div>
+    </div>
+  `;
+}
+
+/** Render Flags section with inline edit toggle (local to screenshot, not persisted) */
+function renderFlags(flagsText) {
+  const text = flagsText && flagsText.trim() ? flagsText : 'None right now.';
+  // Escape for safe HTML insertion + textarea
+  const escaped = text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+  return `
+    <div class="flags" id="flags-block">
+      <div class="flag-header">
+        <div class="flag-label">⚑ FLAGS / NEEDS ANSHUL</div>
+        <button type="button" class="flag-edit-btn" onclick="toggleFlagEdit()">EDIT</button>
+      </div>
+      <div class="flag-body" id="flag-display">${escaped}</div>
+      <div class="flag-edit" id="flag-edit" style="display:none;">
+        <textarea id="flag-textarea" rows="4">${escaped}</textarea>
+        <div class="flag-edit-actions">
+          <button type="button" class="flag-save-btn" onclick="saveFlagEdit()">SAVE</button>
+          <button type="button" class="flag-cancel-btn" onclick="cancelFlagEdit()">CANCEL</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/** Toggle from display mode to edit mode */
+function toggleFlagEdit() {
+  document.getElementById('flag-display').style.display = 'none';
+  document.querySelector('#flags-block .flag-edit-btn').style.display = 'none';
+  document.getElementById('flag-edit').style.display = 'block';
+  document.getElementById('flag-textarea').focus();
+}
+
+/** Save the edited flag text back into the display (local only — for screenshot) */
+function saveFlagEdit() {
+  const newText = document.getElementById('flag-textarea').value.trim() || 'None right now.';
+  const escaped = newText
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\n/g, '<br>');
+  document.getElementById('flag-display').innerHTML = escaped;
+  document.getElementById('flag-display').style.display = 'block';
+  document.getElementById('flag-edit').style.display = 'none';
+  document.querySelector('#flags-block .flag-edit-btn').style.display = 'inline-block';
+}
+
+/** Cancel without saving */
+function cancelFlagEdit() {
+  document.getElementById('flag-edit').style.display = 'none';
+  document.getElementById('flag-display').style.display = 'block';
+  document.querySelector('#flags-block .flag-edit-btn').style.display = 'inline-block';
+}
+
+/** Render last-updated text in the refresh bar */
+function renderRefreshBar() {
+  const time = new Date().toLocaleString('en-US', {
+    timeZone: 'America/Chicago',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
+  });
+  return `
+    <div class="refresh-bar">
+      <div class="last-updated">Last refreshed: ${time} CT</div>
+      <button onclick="location.reload()">↻ REFRESH</button>
+    </div>
+  `;
+}
+
+/** Wrap card content with refresh bar above */
+function wrapCard(cardHtml) {
+  return `${renderRefreshBar()}<div class="card">${cardHtml}</div>`;
+}
+
+/** Display an error state */
+function renderError(message) {
+  return `
+    <div class="card">
+      <div class="error-state">
+        <strong>Could not load data.</strong><br>
+        ${message}<br><br>
+        Check that the Google Sheet is published to the web as CSV
+        and the URL is correct in this page's config.
+      </div>
+    </div>
+  `;
+}
+
+/** Display a loading state */
+function renderLoading() {
+  return `<div class="card"><div class="loading-state">Loading latest numbers from Google Sheet…</div></div>`;
+}
+
+  </script>
+  <style>
+    body { background:#e9e6dd; padding:24px; }
+    /* Commission dashboard needs a wider card for the 10-column By Sourcer table */
+    .card { max-width: 1180px !important; }
+    table th, table td { padding: 7px 8px !important; font-size: 12px; }
+    table th { font-size: 10px; }
+    .section { overflow-x: auto; }
+    /* Commission-only: date-filter bar replaces the 5x-daily time strip */
+    .gs-filter { background: var(--gs-cream); padding: 12px 24px; border-bottom: 0.5px solid var(--gs-border); }
+    .gs-filter-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+    .gs-filter-row + .gs-filter-row { margin-top: 10px; }
+    .gs-filter-label { font-family: var(--font-body); font-size: 10px; letter-spacing: 1.5px; color: var(--gs-faint); font-weight: bold; }
+    .gs-pills { display: flex; gap: 6px; flex-wrap: wrap; }
+    .gs-pill { font-family: var(--font-body); font-size: 11px; padding: 5px 12px; border-radius: 14px; border: 1px solid var(--gs-border-soft); background: #fff; color: var(--gs-faint); cursor: pointer; }
+    .gs-pill:hover { border-color: var(--gs-gold); color: var(--gs-dark-green); }
+    .gs-pill.active { background: var(--gs-dark-green); color: var(--gs-gold); border-color: var(--gs-dark-green); font-weight: bold; }
+    .gs-range { display: flex; gap: 14px; align-items: center; }
+    .gs-range label { font-family: var(--font-body); font-size: 10px; letter-spacing: 1px; color: var(--gs-faint); font-weight: bold; display: flex; gap: 6px; align-items: center; }
+    .gs-range input[type=date] { font-family: var(--font-body); font-size: 12px; padding: 4px 8px; border: 1px solid var(--gs-border-soft); border-radius: 5px; color: var(--gs-dark-green); }
+    .gs-range-label { font-family: var(--font-body); font-size: 11px; color: var(--gs-dark-green); font-weight: bold; }
+    td.gold { color: var(--gs-gold); font-weight: bold; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script>
+    // ============================================
+    // LIM COMMISSION DASHBOARD
+    // On-demand tool (date-filter bar, not a 5x/day time strip). Fetches three raw tabs,
+    // does all windowing + attribution + commission math in-browser.
+    //   Campaign Members : A Start Date  | B Owner          | C Campaign Name    | D Actual Campaign Members
+    //   Warm Transfers   : A Created Date| B Sourcer (Text) | C Sourcer (Phone)  | D Full Name | E Subject | F Transfer Origin
+    //   PreQualified     : ASSUMED same as Warm Transfers -> A Date | B Sourcer (Text) | C Sourcer (Phone)
+    //                      (adjust PQ_DATE / PQ_TEXT / PQ_PHONE below if the columns differ)
+    //
+    // MONEY MODEL:
+    //   Per pre-qualified lead: $1 to Sourcer (Text) + $2 to Sourcer (Phone). Same person -> $3.
+    //   Weekly team bonus: each week whose team goal (members/600) is hit -> +$15 to every roster member.
+    //   Star: top pre-qualifier over the selected window.
+    // ============================================
+    const CAMPAIGN_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSMUBPWS464Rq_ID_Zjoj-PU5QuDeIj2PK6pSKV22rEZ8_0_zxjYagl4SYM3TZckmIkaxhyr_QtyUk9/pub?gid=192530499&single=true&output=csv";
+    const TRANSFER_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSMUBPWS464Rq_ID_Zjoj-PU5QuDeIj2PK6pSKV22rEZ8_0_zxjYagl4SYM3TZckmIkaxhyr_QtyUk9/pub?gid=1773928940&single=true&output=csv";
+    const PREQUAL_URL  = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSMUBPWS464Rq_ID_Zjoj-PU5QuDeIj2PK6pSKV22rEZ8_0_zxjYagl4SYM3TZckmIkaxhyr_QtyUk9/pub?gid=2020043048&single=true&output=csv";
+
+    const TEAM_NAME = "LIM Commission";
+    const TEAM_LEAD = "Juan";
+
+    const ROSTER = ['Ahmed Abdelbaset', 'Juan Pablo Larrea', 'Martina Misheal', 'Maryam Selim', 'Mina Kamal', 'Nada Ahmed'];
+
+    // ---- Tunables (change here, no other edits needed) ----
+    const WEEKLY_BONUS = 15, WEEKLY_BONUS_TOP = 16, STAR_BONUS = 50;
+    const STAR_ENABLED = true;   // Star section always visible; the winner's name + $50 appear only in the month's last week.
+
+    // Goal divisors: expected pre-qualified = campaign members / divisor.
+    const GOAL_TOP = 600, GOAL_OPTIMAL = 700, GOAL_MIN = 800;
+
+    // Per-lead reward by the PHONE sourcer's ratio = their campaign members / their pre-qualified.
+    // Text sourcer always gets textShare; the phone sourcer gets the remainder (total - textShare).
+    // If one person both texted and called the lead, they receive the whole total.
+    const BANDS = [
+      { max: 600,      total: 4.0, textShare: 1.0, label: '<600' },
+      { max: 700,      total: 3.0, textShare: 1.0, label: '600\u2013700' },
+      { max: 800,      total: 1.5, textShare: 0.5, label: '700\u2013800' },
+      { max: Infinity, total: 0,   textShare: 0,   label: '>800' }
+    ];
+    // Band from a phone sourcer's ratio (members / pre-qualified). No pre-qualifies -> no band.
+    function bandFor(members, prequalified) {
+      if (!prequalified || prequalified <= 0) return { total: 0, textShare: 0, phoneShare: 0, label: '\u2014', ratio: null };
+      const ratio = members / prequalified;
+      let b;
+      if (ratio < 600) b = BANDS[0];
+      else if (ratio <= 700) b = BANDS[1];
+      else if (ratio <= 800) b = BANDS[2];
+      else b = BANDS[3];
+      return { total: b.total, textShare: b.textShare, phoneShare: b.total - b.textShare, label: b.label, ratio };
+    }
+
+    const MANAGER = 'Juan Pablo Larrea';   // excluded from team bonus; has own manager pay (separate page)
+    const OVERRIDE_RATE = 0.15;
+    // Per-tab date correction (Salesforce stamps date fields at 00:00 UTC -> CT shows prior day).
+    const CM_SHIFT = 1, WT_SHIFT = 1, PQ_SHIFT = 0;
+    // Column indexes (0-based). Adjust only if a tab's layout changes.
+    const CM_DATE = 0, CM_OWNER = 1, CM_MEMBERS = 3;         // Campaign Members: A Start Date | B Owner | D Actual Campaign Members
+    const WT_DATE = 0, WT_TEXT = 1, WT_PHONE = 2, WT_NAME = 3, WT_STATUS = 6, WT_URL = 7, WT_TERM = 8, WT_NURTURE = 9, WT_NOTES = 10;   // G Lead Status | H Lead URL | I Reason for terminating | J Reason for Nurture | K Closer's Notes
+    const PQ_DATE = 0, PQ_FIRST = 2, PQ_TEXT = 3, PQ_PHONE = 4, PQ_LAST = 5;  // PreQualified: A Date | C First | D Sourcer(Text) | E Sourcer(Phone) | F Last
+
+    let CAMPAIGN_ROWS = [], TRANSFER_ROWS = [], PREQUAL_ROWS = [];
+
+    // ---- Date helpers ----
+    const iso = (dt) => `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+    const parse = (s) => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
+    const fmt = (dt) => dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    const fmtUSD = (n) => '$' + Math.round(n).toLocaleString('en-US');
+    function normDate(s, shift) {
+      shift = shift || 0;
+      s = String(s || '').trim();
+      let y, mo, d;
+      let m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (m) { y = +m[1]; mo = +m[2]; d = +m[3]; }
+      else {
+        m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+        if (m) { mo = +m[1]; d = +m[2]; y = +m[3]; }
+        else return s;
+      }
+      const dt = new Date(y, mo - 1, d + shift);   // per-tab shift; Date() handles month/year rollover
+      return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+    }
+    function mondayOf(dt) { const x = new Date(dt); const day = (x.getDay() + 6) % 7; x.setDate(x.getDate() - day); return x; }
+
+    // Expand/collapse a person's per-lead detail row.
+    window.toggleLeads = function (id) {
+      const el = document.getElementById(id);
+      const c = document.getElementById('c_' + id);
+      if (!el) return;
+      const open = el.style.display !== 'none';
+      el.style.display = open ? 'none' : 'table-row';
+      if (c) c.textContent = open ? '\u25B8' : '\u25BE';
+    };
+
+    // A week belongs to the month of its Monday. For the month that owns `refDate`'s week,
+    // return the first owned Monday, the last owned Monday, and that last week's end (Sunday).
+    function monthOwnedWindow(refDate) {
+      const wkMon = mondayOf(refDate);
+      const Y = wkMon.getFullYear(), Mo = wkMon.getMonth();
+      let firstMon = mondayOf(new Date(Y, Mo, 1));
+      if (firstMon.getMonth() !== Mo) firstMon.setDate(firstMon.getDate() + 7);  // first Monday inside the month
+      let lastMon = new Date(Y, Mo + 1, 0);                                       // last day of month
+      while (lastMon.getDay() !== 1) lastMon.setDate(lastMon.getDate() - 1);      // step back to its last Monday
+      const lastWeekEnd = new Date(lastMon); lastWeekEnd.setDate(lastWeekEnd.getDate() + 6);
+      return { firstMon, lastMon, lastWeekEnd, Y, Mo };
+    }
+
+    function presetRange(key) {
+      const t = new Date();
+      if (key === 'today')     return { from: new Date(t), to: new Date(t) };
+      if (key === 'thisWeek')  return { from: mondayOf(t), to: new Date(t) };
+      if (key === 'lastWeek')  { const mo = mondayOf(t); const s = new Date(mo); s.setDate(s.getDate() - 7); const e = new Date(mo); e.setDate(e.getDate() - 1); return { from: s, to: e }; }
+      if (key === 'thisMonth') return { from: new Date(t.getFullYear(), t.getMonth(), 1), to: new Date(t) };
+      if (key === 'lastMonth') return { from: new Date(t.getFullYear(), t.getMonth() - 1, 1), to: new Date(t.getFullYear(), t.getMonth(), 0) };
+      return { from: new Date(t), to: new Date(t) };
+    }
+
+    let state = { preset: 'thisWeek', from: null, to: null, days: 0 };
+    { const r = presetRange('thisWeek'); state.from = r.from; state.to = r.to; }
+
+    function aggregate(from, to) {
+      const f = iso(from), tISO = iso(to);
+      const people = {};
+      const ensure = (n) => { if (!people[n]) people[n] = { members: 0, warmT: 0, warmTPhone: 0, pqText: 0, pqPhone: 0, phones: {}, texts: {} }; return people[n]; };
+      let members = 0, warmTransfers = 0, prequal = 0;
+      const dayset = new Set();
+      const leads = [];      // per pre-qualified lead: { name, tx, ph }  (drives pay)
+      const transfers = [];  // per warm transfer: { name, status, url, tx, ph }  (drives the expand list)
+
+      for (const r of CAMPAIGN_ROWS) {
+        const o = (r[CM_OWNER] || '').trim(); const dt = normDate(r[CM_DATE], CM_SHIFT);
+        if (!o || dt < f || dt > tISO) continue;
+        const m = parseFloat(String(r[CM_MEMBERS]).replace(/[^0-9.\-]/g, '')) || 0;
+        ensure(o).members += m; members += m; dayset.add(dt);
+      }
+      for (const r of TRANSFER_ROWS) {
+        const tx = (r[WT_TEXT] || '').trim(); const ph = (r[WT_PHONE] || '').trim() || tx;
+        const dt = normDate(r[WT_DATE], WT_SHIFT);
+        if (dt < f || dt > tISO) continue;
+        if (tx) ensure(tx).warmT += 1;
+        if (ph) ensure(ph).warmTPhone += 1;
+        const nm = [r[WT_NAME]].map(v => String(v || '').trim()).filter(v => v && !/^[-\u2013\u2014.\s]+$/.test(v)).join(' ') || '(unnamed lead)';
+        transfers.push({ name: nm, status: String(r[WT_STATUS] || '').trim(), url: String(r[WT_URL] || '').trim(), term: String(r[WT_TERM] || '').trim(), nurture: String(r[WT_NURTURE] || '').trim(), notes: String(r[WT_NOTES] || '').trim(), tx, ph });
+        warmTransfers += 1; dayset.add(dt);
+      }
+      for (const r of PREQUAL_ROWS) {
+        const tx = (r[PQ_TEXT] || '').trim(); const ph = (r[PQ_PHONE] || '').trim() || tx; const dt = normDate(r[PQ_DATE], PQ_SHIFT);
+        if (!tx || dt < f || dt > tISO) continue;
+        const p = ensure(tx); p.pqText += 1; ensure(ph).pqPhone += 1;
+        p.phones[ph] = (p.phones[ph] || 0) + 1;      // texter -> callers
+        ensure(ph).texts[tx] = (ensure(ph).texts[tx] || 0) + 1;   // caller -> texters
+        const nm = [r[PQ_FIRST], r[PQ_LAST]]
+          .map(v => String(v || '').trim())
+          .filter(v => v && !/^[-\u2013\u2014.\s]+$/.test(v));   // drop empty or placeholder ("-", ".") parts
+        const name = nm.join(' ').trim() || '(unnamed lead)';
+        leads.push({ name, tx, ph });
+        prequal += 1; dayset.add(dt);
+      }
+      return {
+        members, warmTransfers, prequal, days: dayset.size, people, leads, transfers,
+        goalTop: Math.floor(members / GOAL_TOP), goalOptimal: Math.floor(members / GOAL_OPTIMAL), goalMin: Math.floor(members / GOAL_MIN)
+      };
+    }
+
+    // Compute each person's pre-qualify pay from per-lead records, using the PHONE sourcer's band.
+    // Returns { pay: {name: {phonePay, textPay, base}}, teamBase }.
+    function computePay(a) {
+      const pay = {};
+      const ensurePay = (n) => { if (!pay[n]) pay[n] = { phonePay: 0, textPay: 0, base: 0 }; return pay[n]; };
+      // Precompute each phone person's band from their ratio (members / pre-qualified count as phone).
+      const bandOf = {};
+      Object.keys(a.people).forEach(n => { const p = a.people[n]; bandOf[n] = bandFor(p.members, p.pqPhone); });
+      for (const L of a.leads) {
+        const b = bandOf[L.ph] || bandFor(0, 0);
+        ensurePay(L.tx).textPay += b.textShare;
+        ensurePay(L.ph).phonePay += b.phoneShare;
+      }
+      let teamBase = 0;
+      Object.keys(pay).forEach(n => {
+        // A person in the >800 band (bare minimum not met, or no pre-qualified-as-phone) earns $0 —
+        // including any text credit for leads they texted that someone else phone-sourced.
+        const b = bandOf[n];
+        if (!b || b.total === 0) { pay[n].phonePay = 0; pay[n].textPay = 0; }
+        pay[n].base = pay[n].phonePay + pay[n].textPay; teamBase += pay[n].base;
+      });
+      return { pay, teamBase, bandOf };
+    }
+
+    function weeklyBonus(from, to) {
+      const weeks = []; let ws = mondayOf(from);
+      while (ws <= to) {
+        const we = new Date(ws); we.setDate(we.getDate() + 6);
+        const segFrom = new Date(Math.max(ws.getTime(), from.getTime()));
+        const segTo = new Date(Math.min(we.getTime(), to.getTime()));
+        const a = aggregate(segFrom, segTo);
+        const optGoal = Math.floor(a.members / GOAL_OPTIMAL);   // gate to earn a bonus (members / 700)
+        const topGoal = Math.floor(a.members / GOAL_TOP);       // reaching this bumps the rate to $16 (members / 600)
+        let met = false, rate = 0;
+        if (topGoal > 0 && a.prequal >= topGoal) { met = true; rate = WEEKLY_BONUS_TOP; }
+        else if (optGoal > 0 && a.prequal >= optGoal) { met = true; rate = WEEKLY_BONUS; }
+        const goal = optGoal;                                    // chip still shows the Optimal gate
+        // Active (present) = any activity that week. Out-the-whole-week => not eligible for the $15.
+        const active = {};
+        Object.keys(a.people).forEach(n => {
+          const p = a.people[n];
+          if (p.members > 0 || p.warmTPhone > 0 || p.pqText > 0 || p.pqPhone > 0) active[n] = true;
+        });
+        weeks.push({ ws: new Date(ws), we: new Date(we), members: a.members, prequal: a.prequal, goal, topGoal, met, rate, active });
+        ws = new Date(ws); ws.setDate(ws.getDate() + 7);
+      }
+      const metWeeks = weeks.filter(w => w.met).length;
+      // Per-person bonus: $15 for each met week the person was active. Manager excluded entirely.
+      const bonusFor = (name) => {
+        if (name === MANAGER) return 0;
+        let sum = 0;
+        for (const w of weeks) if (w.met && w.active[name]) sum += w.rate;
+        return sum;
+      };
+      let teamTotal = 0;
+      ROSTER.forEach(n => { teamTotal += bonusFor(n); });
+      return { weeks, metWeeks, bonusFor, teamTotal };
+    }
+
+    const PRESETS = [['thisWeek', 'This Week'], ['lastWeek', 'Last Week']];
+
+    function renderFilterBar() {
+      const pills = PRESETS.map(([k, l]) => `<button class="gs-pill${state.preset === k ? ' active' : ''}" data-preset="${k}">${l}</button>`).join('');
+      const rangeLabel = iso(state.from) === iso(state.to) ? fmt(state.from) : `${fmt(state.from)} \u2013 ${fmt(state.to)}`;
+      return `
+        <div class="gs-filter">
+          <div class="gs-filter-row">
+            <span class="gs-filter-label">PERIOD</span>
+            <div class="gs-pills">${pills}</div>
+          </div>
+          <div class="gs-filter-row">
+            <div class="gs-range">
+              <label>From <input type="date" id="from" value="${iso(state.from)}"></label>
+              <label>To <input type="date" id="to" value="${iso(state.to)}"></label>
+            </div>
+            <span class="gs-range-label">${rangeLabel} \u00b7 ${state.days} workdays</span>
+          </div>
+        </div>`;
+    }
+
+    function renderCard() {
+      const a = aggregate(state.from, state.to); state.days = a.days;
+      const wb = weeklyBonus(state.from, state.to);
+
+      // Star of the Month: leader by pre-qualified across the ENTIRE month (weeks owned by month
+      // of the current view), month-to-date. The $50 only lands on the last day of the month's
+      // last week; before that it's a pending "month leader" badge worth $0.
+      const mw = monthOwnedWindow(state.to);
+      const monthAgg = aggregate(mw.firstMon, state.to);
+      const monthRanked = Object.keys(monthAgg.people)
+        .map(n => ({ name: n, count: monthAgg.people[n].pqPhone }))
+        .filter(x => x.count > 0)
+        .sort((a, b) => b.count - a.count);
+      const star = monthRanked[0] || { name: '\u2014', count: 0 };
+      const top2 = monthRanked.slice(0, 2);
+      const starActive = star.count > 0;
+      const monthEnd = new Date(state.to.getFullYear(), state.to.getMonth() + 1, 0);  // last calendar day of the viewed month
+      const starPayable = iso(state.to) >= iso(monthEnd);         // reveal only on the last day of the month
+      const starShow = STAR_ENABLED && starActive && starPayable; // name + $ appear only on the month's last day
+      const starBonusTotal = starShow ? STAR_BONUS : 0;
+
+      const names = [...ROSTER];
+      Object.keys(a.people).forEach(n => { if (!names.includes(n)) names.push(n); });
+
+      // Per-lead pay: band from each phone sourcer's ratio (members / pre-qualified); text share to
+      // the texter, phone share to the caller. computePay returns the full paycheck per person.
+      const { pay, teamBase, bandOf } = computePay(a);
+      names.forEach(n => { if (!pay[n]) pay[n] = { phonePay: 0, textPay: 0, base: 0 }; });
+      names.forEach(n => { if (!bandOf[n]) bandOf[n] = bandFor((a.people[n] || {}).members || 0, (a.people[n] || {}).pqPhone || 0); });
+
+      const teamTotal = teamBase + wb.teamTotal + starBonusTotal;
+
+      // Per-person warm transfers (by phone sourcer) for the expandable detail list.
+      const transfersByPhone = {};
+      a.transfers.forEach(T => { (transfersByPhone[T.ph] = transfersByPhone[T.ph] || []).push(T); });
+
+      // Match warm transfers <-> pre-qualified leads (only pre-qualified leads earn) by name + sourcers.
+      const normName = (s) => String(s || '').trim().toUpperCase().replace(/\s+/g, ' ');
+      const leadKey = (o) => normName(o.name) + '|' + o.tx + '|' + o.ph;
+      const pqSet = {};                       // which transfers became pre-qualified
+      a.leads.forEach(L => { pqSet[leadKey(L)] = true; });
+
+      // Enrichment lookup (Lead URL / status / reasons / notes) across ALL warm transfers, any date,
+      // so a pre-qualified lead still finds its Salesforce link even if the transfer was logged in a
+      // different period or with different sourcers. Falls back to name-only when name+sourcers misses.
+      const cleanName = (v) => [v].map(x => String(x || '').trim()).filter(x => x && !/^[-\u2013\u2014.\s]+$/.test(x)).join(' ') || '(unnamed lead)';
+      const txExact = {}, txByName = {};
+      TRANSFER_ROWS.forEach(r => {
+        const tx = (r[WT_TEXT] || '').trim(); const ph = (r[WT_PHONE] || '').trim() || tx;
+        const rec = { name: cleanName(r[WT_NAME]), url: String(r[WT_URL] || '').trim(), status: String(r[WT_STATUS] || '').trim(), term: String(r[WT_TERM] || '').trim(), nurture: String(r[WT_NURTURE] || '').trim(), notes: String(r[WT_NOTES] || '').trim(), tx, ph };
+        txExact[normName(rec.name) + '|' + tx + '|' + ph] = rec;
+        if (!txByName[normName(rec.name)]) txByName[normName(rec.name)] = rec;   // first row with this name
+      });
+      const lookupTx = (L) => txExact[leadKey(L)] || txByName[normName(L.name)] || {};
+
+
+      // Grouped by person. Each block: a primary (self) row carrying the person's
+      // members/ratio/weekly/star/total, then CALL rows (their call-rate share for leads they
+      // pre-qualified that someone else texted) and TEXT CREDIT rows (their text-rate share for
+      // leads they texted that someone else called). Every block totals the person's true paycheck.
+      // One summary row per person (click to expand a per-lead breakdown). Columns:
+      // SOURCER | MEMBERS | PRE-QUALIFIED | RATIO | PRE-QUALIFY $ | WEEKLY BONUS $ | STAR $ | TOTAL $
+      const rows = names.map((n, idx) => {
+        const p = a.people[n] || { members: 0, warmT: 0, warmTPhone: 0, pqText: 0, pqPhone: 0, phones: {}, texts: {} };
+        const isStar = n === star.name && starShow;
+        const band = bandOf[n];
+        const weekly = wb.bonusFor(n);
+        const starPay = isStar ? STAR_BONUS : 0;
+        const base = pay[n].base;
+        const personTotal = base + weekly + starPay;
+        const ratioLabel = band.ratio === null ? '\u2014' : Math.round(band.ratio).toLocaleString('en-US');
+        const hasActivity = ROSTER.includes(n) || p.members > 0 || p.pqPhone > 0 || p.pqText > 0;
+        const edge = 'border-bottom:1px solid #EFEADD;';
+        const starTag = isStar ? ` <span style="display:inline-block;padding:1px 7px;border-radius:9px;background:var(--gs-dark-green);color:var(--gs-gold);font-family:var(--font-body);font-size:9px;font-weight:bold;letter-spacing:0.5px;vertical-align:1px;">\u2605 STAR +$50</span>` : '';
+
+        // Expandable detail: only cross-sourced leads — CALL (they called a lead someone else texted)
+        // and TEXT CREDIT (they texted a lead someone else called). SELF and non-pre-qualified are omitted.
+        const escapeAttr = (s) => String(s).replace(/"/g, '&quot;');
+        const forfeited = band.total === 0;   // own ratio >800 -> earns nothing
+        const tagPill = (bg, fg, bd, txt) => `<span style="display:inline-block;padding:0 6px;border-radius:8px;background:${bg};color:${fg};${bd ? 'border:1px solid ' + bd + ';' : ''}font-size:8px;font-weight:bold;vertical-align:1px;">${txt}</span>`;
+        const detail = [];
+        // 1. Pre-qualified leads this person PHONE-sourced (driven by PreQualified, so none are missed).
+        //    SELF (they also texted it) stays unlabeled; CALL (someone else texted) is labeled.
+        a.leads.forEach(L => {
+          if (L.ph !== n) return;
+          const T = lookupTx(L);
+          if (L.tx === n) {
+            detail.push({ name: L.name, url: T.url || '', status: T.status || '', term: T.term || '', nurture: T.nurture || '', notes: T.notes || '', earned: band.total, tag: '', note: '' });
+          } else {
+            detail.push({ name: L.name, url: T.url || '', status: T.status || '', term: T.term || '', nurture: T.nurture || '', notes: T.notes || '', earned: band.phoneShare, tag: tagPill('var(--gs-gold)', 'var(--gs-dark-green)', '', 'CALL'), note: 'texted by ' + L.tx });
+          }
+        });
+        // 2. TEXT CREDIT: pre-qualified leads this person TEXTED that someone else phone-sourced.
+        a.leads.forEach(L => {
+          if (L.tx !== n || L.ph === n) return;
+          const T = lookupTx(L);
+          const earned = forfeited ? 0 : (bandOf[L.ph] || bandFor(0, 0)).textShare;
+          detail.push({ name: L.name, url: T.url || '', status: T.status || '', term: T.term || '', nurture: T.nurture || '', notes: T.notes || '', earned, tag: tagPill('var(--gs-cream)', 'var(--gs-dark-green)', 'var(--gs-gold)', 'TEXT CREDIT'), note: 'called by ' + L.ph });
+        });
+        // 3. This person's warm transfers that are NOT yet pre-qualified (nurture) -> $0, unlabeled.
+        (transfersByPhone[n] || []).forEach(T => {
+          if (pqSet[leadKey(T)]) return;   // pre-qualified ones already listed above
+          detail.push({ name: T.name, url: T.url, status: T.status, term: T.term, nurture: T.nurture, notes: T.notes, earned: 0, tag: '', note: '' });
+        });
+        const shownEarned = detail.reduce((s, d) => s + d.earned, 0);
+
+        const detailId = 'lead_' + idx;
+        const hasDetail = detail.length > 0;
+        const caret = hasDetail ? `<span id="c_${detailId}" style="color:var(--gs-gold);font-weight:bold;margin-right:4px;">\u25B8</span>` : '<span style="margin-right:4px;opacity:0;">\u25B8</span>';
+        const summaryRow = `<tr style="${isStar ? 'background:#EBD88C;' : 'background:#FFFFFF;'}${edge}${hasDetail ? 'cursor:pointer;' : ''}"${hasDetail ? ` onclick="toggleLeads('${detailId}')"` : ''}>
+          <td class="label"${isStar ? ' style="font-weight:bold;color:var(--gs-dark-green);"' : ''}>${caret}${hasActivity ? n : '\u2014'}${starTag}</td>
+          <td class="num">${p.members.toLocaleString('en-US')}</td>
+          <td class="num">${p.warmTPhone}</td>
+          <td class="num highlight">${p.pqPhone}</td>
+          <td class="num">${ratioLabel}</td>
+          <td class="num">${fmtUSD(base)}</td>
+          <td class="num">${fmtUSD(weekly)}</td>
+          ${STAR_ENABLED ? `<td class="num">${fmtUSD(starPay)}</td>` : ''}
+          <td class="num gold">${fmtUSD(personTotal)}</td>
+        </tr>`;
+
+        const detailRow = hasDetail ? `<tr id="${detailId}" style="display:none;background:#FBF7EC;">
+          <td colspan="${STAR_ENABLED ? 9 : 8}" style="padding:6px 24px 12px 34px;">
+            <div style="font-family:var(--font-display); font-size:9px; letter-spacing:1px; color:var(--gs-gold); font-weight:bold; padding-bottom:4px;">LEADS \u00b7 ${detail.length} \u00b7 earned ${fmtUSD(shownEarned)}</div>
+            <table style="width:100%;border-collapse:collapse;font-size:11px;">
+              <thead><tr>
+                <th style="text-align:left;padding:2px 8px;font-size:8.5px;color:var(--gs-gold);">LEAD</th>
+                <th style="text-align:left;padding:2px 8px;font-size:8.5px;color:var(--gs-gold);">LEAD STATUS</th>
+                <th style="text-align:left;padding:2px 8px;font-size:8.5px;color:var(--gs-gold);">REASON FOR TERMINATION</th>
+                <th style="text-align:left;padding:2px 8px;font-size:8.5px;color:var(--gs-gold);">REASON FOR NURTURE</th>
+                <th style="text-align:left;padding:2px 8px;font-size:8.5px;color:var(--gs-gold);">CLOSER'S NOTES</th>
+                <th style="text-align:right;padding:2px 8px;font-size:8.5px;color:var(--gs-gold);">EARNED</th>
+              </tr></thead>
+              ${detail.map(d => {
+                const isLink = /^https?:\/\//i.test(d.url);
+                const nameCell = isLink
+                  ? `<a href="${escapeAttr(d.url)}" target="_blank" rel="noopener" style="color:var(--gs-dark-green);text-decoration:underline;">${d.name}</a>`
+                  : `<span style="color:var(--gs-dark-green);">${d.name}</span>`;
+                return `<tr>
+                  <td style="padding:4px 8px;border-bottom:1px solid #EFEADD;">${nameCell} ${d.tag}${d.note ? ' <span style="color:var(--gs-faint);font-size:9px;">' + d.note + '</span>' : ''}</td>
+                  <td style="padding:4px 8px;color:var(--gs-faint);font-size:10px;border-bottom:1px solid #EFEADD;">${d.status || ''}</td>
+                  <td style="padding:4px 8px;color:var(--gs-faint);font-size:10px;border-bottom:1px solid #EFEADD;">${d.term || ''}</td>
+                  <td style="padding:4px 8px;color:var(--gs-faint);font-size:10px;border-bottom:1px solid #EFEADD;">${d.nurture || ''}</td>
+                  <td style="padding:4px 8px;color:var(--gs-faint);font-size:10px;border-bottom:1px solid #EFEADD;">${d.notes || ''}</td>
+                  <td class="num" style="padding:4px 8px;text-align:right;border-bottom:1px solid #EFEADD;">${fmtUSD(d.earned)}</td>
+                </tr>`;
+              }).join('')}
+            </table>
+          </td>
+        </tr>` : '';
+
+        return summaryRow + detailRow;
+      }).join('');
+
+      const weekChips = wb.weeks.map(w => {
+        const label = `${(w.ws.getMonth() + 1)}/${w.ws.getDate()}`;
+        return `<div style="display:flex;justify-content:space-between;gap:12px;padding:7px 12px;border-radius:6px;background:${w.met ? 'var(--gs-dark-green)' : '#fff'};border:1px solid ${w.met ? 'var(--gs-dark-green)' : 'var(--gs-border-soft)'};">
+          <span style="font-family:var(--font-body);font-size:11px;color:${w.met ? 'var(--gs-gold)' : 'var(--gs-faint)'};font-weight:bold;">Wk ${label}</span>
+          <span style="font-family:var(--font-body);font-size:11px;color:${w.met ? 'var(--gs-cream)' : 'var(--gs-dark-green)'};">${w.prequal} / ${w.goal} ${w.met ? '\u2713 $' + w.rate : ''}</span>
+        </div>`;
+      }).join('');
+
+      return wrapCard(`
+        ${renderHeader(TEAM_NAME, TEAM_LEAD)}
+        ${renderFilterBar()}
+
+        <div style="margin:4px 24px 16px; background:var(--gs-dark-green); border-radius:8px; padding:18px 24px; display:flex; align-items:center; justify-content:space-between; gap:20px; flex-wrap:wrap;">
+          <div>
+            <div style="font-family:var(--font-display); font-weight:bold; font-size:11px; letter-spacing:2px; color:var(--gs-gold);">RUNNING COMMISSION \u00b7 THIS PERIOD</div>
+            <div style="font-family:var(--font-display); font-weight:bold; font-size:42px; color:var(--gs-cream); line-height:1.05; margin-top:4px;">${fmtUSD(teamTotal)}</div>
+            <div style="font-family:var(--font-body); font-size:11px; color:var(--gs-gold); margin-top:4px;">${fmtUSD(teamBase)} pre-qualify + ${fmtUSD(wb.teamTotal)} team bonus${starBonusTotal ? ' + ' + fmtUSD(starBonusTotal) + ' star' : ''}</div>
+          </div>
+          ${STAR_ENABLED ? `
+          <div style="text-align:right;">
+            ${starShow ? `
+            <div style="font-family:var(--font-display); font-weight:bold; font-size:11px; letter-spacing:2px; color:var(--gs-gold);">STAR OF THE MONTH</div>
+            <div style="font-family:var(--font-display); font-weight:bold; font-size:20px; color:var(--gs-cream); margin-top:4px;">\u2605 ${star.name}</div>
+            <div style="font-family:var(--font-body); font-size:11px; color:var(--gs-gold); margin-top:2px;">${star.count} pre-qualified \u00b7 +$50 (awarded)</div>
+            ` : `
+            <div style="font-family:var(--font-display); font-weight:bold; font-size:11px; letter-spacing:2px; color:var(--gs-gold);">POTENTIAL STAR OF THE MONTH</div>
+            ${top2.length ? top2.map((t, i) => `<div style="font-family:var(--font-display); font-weight:bold; font-size:${i === 0 ? '17' : '14'}px; color:var(--gs-cream); margin-top:${i === 0 ? '4' : '1'}px;">${i + 1}. ${t.name} <span style="color:var(--gs-gold); font-weight:normal; font-size:11px;">\u00b7 ${t.count}</span></div>`).join('') : `<div style="font-family:var(--font-display); font-size:16px; color:var(--gs-cream); margin-top:4px; opacity:0.85;">\u2014</div>`}
+            <div style="font-family:var(--font-body); font-size:10px; color:var(--gs-gold); margin-top:3px; opacity:0.85;">top 2 \u00b7 winner + $50 on the last day</div>
+            `}
+          </div>` : ''}
+        </div>
+
+        <div class="kpi-strip" style="grid-template-columns: repeat(3, 1fr);">
+          <div class="kpi-cell"><div class="kpi-value">${a.members.toLocaleString('en-US')}</div><div class="kpi-label">Campaign Members</div></div>
+          <div class="kpi-cell accent"><div class="kpi-value">${a.prequal}</div><div class="kpi-label">Pre-Qualified</div></div>
+          <div class="kpi-cell hero"><div class="kpi-value">${fmtUSD(teamBase)}</div><div class="kpi-label">Pre-Qualify $</div></div>
+        </div>
+
+        <div class="section">
+          <h2>GOALS \u00b7 PRE-QUALIFIED</h2>
+          <div style="display:grid; grid-template-columns:repeat(2,1fr); gap:12px;">
+            ${[['TOP TARGET', a.goalTop, GOAL_TOP], ['OPTIMAL', a.goalOptimal, GOAL_OPTIMAL]].map(([lbl, goal, div]) => {
+              const hit = a.prequal >= goal && goal > 0;
+              return `<div style="background:${hit ? 'var(--gs-dark-green)' : 'var(--gs-cream)'}; border:1px solid ${hit ? 'var(--gs-dark-green)' : 'var(--gs-border-soft)'}; border-radius:8px; padding:12px 16px;">
+                <div style="font-family:var(--font-display); font-size:10px; letter-spacing:1.5px; font-weight:bold; color:${hit ? 'var(--gs-gold)' : 'var(--gs-gold)'};">${lbl}${lbl === 'OPTIMAL' ? ' \u00b7 bonus gate' : ''}</div>
+                <div style="font-family:var(--font-display); font-size:30px; font-weight:bold; line-height:1.1; color:${hit ? 'var(--gs-cream)' : 'var(--gs-dark-green)'};">${goal}</div>
+                <div style="font-family:var(--font-body); font-size:9px; color:${hit ? 'var(--gs-cream)' : 'var(--gs-faint)'};">members \u00f7 ${div}${hit ? ' \u00b7 \u2713 hit' : ''}</div>
+              </div>`;
+            }).join('')}
+          </div>
+        </div>
+
+        <div class="section">
+          <h2>WEEKLY TEAM BONUS</h2>
+          <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(120px,1fr)); gap:8px; margin-bottom:8px;">${weekChips}</div>
+          <div style="font-family:var(--font-body); font-size:11px; color:var(--gs-dark-green);"><b>${wb.metWeeks}</b> week(s) hit \u00b7 $15/active member ($16 if Top Target) = <b>${fmtUSD(wb.teamTotal)}</b> total</div>
+        </div>
+
+        <div class="section">
+          <h2>BY SOURCER</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>SOURCER</th>
+                <th class="num">MEMBERS</th>
+                <th class="num">WARM TRANSFERS</th>
+                <th class="num">PRE-QUALIFIED</th>
+                <th class="num">RATIO</th>
+                <th class="num">PRE-QUALIFY $</th>
+                <th class="num">WEEKLY BONUS $</th>${STAR_ENABLED ? '<th class="num">STAR $</th>' : ''}<th class="num">TOTAL $</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows}
+              <tr class="total">
+                <td>TOTAL</td>
+                <td class="num">${a.members.toLocaleString('en-US')}</td>
+                <td class="num">${a.warmTransfers}</td>
+                <td class="num">${a.prequal}</td>
+                <td class="num">${a.prequal > 0 ? Math.round(a.members / a.prequal).toLocaleString('en-US') : '\u2014'}</td>
+                <td class="num">${fmtUSD(teamBase)}</td>
+                <td class="num">${fmtUSD(wb.teamTotal)}</td>
+                ${STAR_ENABLED ? `<td class="num">${fmtUSD(starBonusTotal)}</td>` : ''}
+                <td class="num">${fmtUSD(teamTotal)}</td>
+              </tr>
+            </tbody>
+          </table>
+          <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-top:12px;">
+            <span style="font-family:var(--font-display); font-size:10px; font-weight:bold; letter-spacing:1px; color:var(--gs-gold);">REWARD BANDS \u00b7 members \u00f7 pre-qualified (phone)</span>
+            ${BANDS.map(b => `<span style="font-family:var(--font-body); font-size:11px; padding:3px 10px; border-radius:12px; background:var(--gs-cream); border:0.5px solid var(--gs-border-soft); color:var(--gs-dark-green);"><b>${b.label}</b> &rarr; $${b.total} ($${b.textShare} text / $${(b.total - b.textShare)} phone)</span>`).join('')}
+          </div>
+        </div>
+
+        ${renderFooter()}
+      `);
+    }
+
+    function bindEvents() {
+      document.querySelectorAll('.gs-pill').forEach(b => b.addEventListener('click', () => {
+        state.preset = b.dataset.preset;
+        const r = presetRange(state.preset); state.from = r.from; state.to = r.to;
+        draw();
+      }));
+      const onDate = () => {
+        const f = document.getElementById('from').value, t = document.getElementById('to').value;
+        if (f) state.from = parse(f); if (t) state.to = parse(t);
+        state.preset = null; draw();
+      };
+      const fromEl = document.getElementById('from'), toEl = document.getElementById('to');
+      if (fromEl) fromEl.addEventListener('change', onDate);
+      if (toEl) toEl.addEventListener('change', onDate);
+    }
+
+    function draw() {
+      document.getElementById('root').innerHTML = renderCard();
+      bindEvents();
+    }
+
+    async function loadRows(url) {
+      const res = await fetch(url + "&cb=" + Date.now(), { cache: 'no-store' });
+      if (!res.ok) throw new Error(`Failed to fetch sheet (${res.status})`);
+      const rows = parseAllRows(await res.text());
+      return rows.length > 1 ? rows.slice(1) : [];
+    }
+
+    async function init() {
+      const root = document.getElementById('root');
+      root.innerHTML = renderLoading();
+      try {
+        const [campaigns, transfers, prequal] = await Promise.all([
+          loadRows(CAMPAIGN_URL), loadRows(TRANSFER_URL), loadRows(PREQUAL_URL)
+        ]);
+        CAMPAIGN_ROWS = campaigns;
+        TRANSFER_ROWS = transfers;
+        PREQUAL_ROWS = prequal;
+        draw();
+      } catch (err) {
+        root.innerHTML = renderError(err.message);
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>
