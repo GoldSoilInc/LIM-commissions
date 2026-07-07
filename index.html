@@ -1173,8 +1173,20 @@ function renderLoading() {
       const leadKey = (o) => normName(o.name) + '|' + o.tx + '|' + o.ph;
       const pqSet = {};                       // which transfers became pre-qualified
       a.leads.forEach(L => { pqSet[leadKey(L)] = true; });
-      const txIndex = {};                      // find a warm transfer (URL/status) for a pre-qualified lead
-      a.transfers.forEach(T => { txIndex[leadKey(T)] = T; });
+
+      // Enrichment lookup (Lead URL / status / reasons / notes) across ALL warm transfers, any date,
+      // so a pre-qualified lead still finds its Salesforce link even if the transfer was logged in a
+      // different period or with different sourcers. Falls back to name-only when name+sourcers misses.
+      const cleanName = (v) => [v].map(x => String(x || '').trim()).filter(x => x && !/^[-\u2013\u2014.\s]+$/.test(x)).join(' ') || '(unnamed lead)';
+      const txExact = {}, txByName = {};
+      TRANSFER_ROWS.forEach(r => {
+        const tx = (r[WT_TEXT] || '').trim(); const ph = (r[WT_PHONE] || '').trim() || tx;
+        const rec = { name: cleanName(r[WT_NAME]), url: String(r[WT_URL] || '').trim(), status: String(r[WT_STATUS] || '').trim(), term: String(r[WT_TERM] || '').trim(), nurture: String(r[WT_NURTURE] || '').trim(), notes: String(r[WT_NOTES] || '').trim(), tx, ph };
+        txExact[normName(rec.name) + '|' + tx + '|' + ph] = rec;
+        if (!txByName[normName(rec.name)]) txByName[normName(rec.name)] = rec;   // first row with this name
+      });
+      const lookupTx = (L) => txExact[leadKey(L)] || txByName[normName(L.name)] || {};
+
 
       // Grouped by person. Each block: a primary (self) row carrying the person's
       // members/ratio/weekly/star/total, then CALL rows (their call-rate share for leads they
@@ -1205,7 +1217,7 @@ function renderLoading() {
         //    SELF (they also texted it) stays unlabeled; CALL (someone else texted) is labeled.
         a.leads.forEach(L => {
           if (L.ph !== n) return;
-          const T = txIndex[leadKey(L)] || {};
+          const T = lookupTx(L);
           if (L.tx === n) {
             detail.push({ name: L.name, url: T.url || '', status: T.status || '', term: T.term || '', nurture: T.nurture || '', notes: T.notes || '', earned: band.total, tag: '', note: '' });
           } else {
@@ -1215,7 +1227,7 @@ function renderLoading() {
         // 2. TEXT CREDIT: pre-qualified leads this person TEXTED that someone else phone-sourced.
         a.leads.forEach(L => {
           if (L.tx !== n || L.ph === n) return;
-          const T = txIndex[leadKey(L)] || {};
+          const T = lookupTx(L);
           const earned = forfeited ? 0 : (bandOf[L.ph] || bandFor(0, 0)).textShare;
           detail.push({ name: L.name, url: T.url || '', status: T.status || '', term: T.term || '', nurture: T.nurture || '', notes: T.notes || '', earned, tag: tagPill('var(--gs-cream)', 'var(--gs-dark-green)', 'var(--gs-gold)', 'TEXT CREDIT'), note: 'called by ' + L.ph });
         });
