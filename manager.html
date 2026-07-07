@@ -1325,10 +1325,6 @@ function renderLoading() {
 
       // Juan's weekly goal attainment (his members / 700 vs his pre-qualified) — personal target, no bonus.
       const jWeeks = [];
-      const wkChip = (w) => `<div style="display:flex;justify-content:space-between;gap:12px;padding:7px 12px;border-radius:6px;background:${w.met ? 'var(--gs-dark-green)' : '#fff'};border:1px solid ${w.met ? 'var(--gs-dark-green)' : 'var(--gs-border-soft)'};">
-        <span style="font-family:var(--font-body);font-size:11px;color:${w.met ? 'var(--gs-gold)' : 'var(--gs-faint)'};font-weight:bold;">Wk ${(w.ws.getMonth() + 1)}/${w.ws.getDate()}</span>
-        <span style="font-family:var(--font-body);font-size:11px;color:${w.met ? 'var(--gs-cream)' : 'var(--gs-dark-green)'};">${w.prequal} / ${w.goal} ${w.met ? '\u2713' + (w.rate ? ' $' + w.rate : '') : ''}</span>
-      </div>`;
       { let ws = mondayOf(state.from);
         while (ws <= state.to) {
           const we = new Date(ws); we.setDate(we.getDate() + 6);
@@ -1340,6 +1336,18 @@ function renderLoading() {
           ws = new Date(ws); ws.setDate(ws.getDate() + 7);
         }
       }
+
+      // One row per week showing the TEAM bonus gate and JUAN's personal target side by side.
+      const comboChip = (w, jw) => {
+        const seg = (label, o) => `<span style="font-family:var(--font-body);font-size:11px;white-space:nowrap;">
+            <b style="color:var(--gs-gold);letter-spacing:0.5px;">${label}</b>
+            <span style="color:${o.met ? 'var(--gs-dark-green)' : 'var(--gs-faint)'};font-weight:${o.met ? 'bold' : 'normal'};"> ${o.prequal} / ${o.goal}${o.met ? ' \u2713' + (o.rate ? ' $' + o.rate : '') : ''}</span>
+          </span>`;
+        return `<div style="display:flex;align-items:center;gap:14px;padding:8px 12px;border-radius:6px;background:#fff;border:1px solid var(--gs-border-soft);">
+          <span style="font-family:var(--font-body);font-size:11px;font-weight:bold;color:var(--gs-dark-green);min-width:50px;">Wk ${(w.ws.getMonth() + 1)}/${w.ws.getDate()}</span>
+          <span style="display:flex;flex:1;gap:18px;flex-wrap:wrap;justify-content:space-between;">${seg('TEAM', w)}${seg('JUAN', jw)}</span>
+        </div>`;
+      };
 
       // Juan's lead breakdown (his warm transfers + text credits) with the amount he earned per lead.
       const normName = (s) => String(s || '').trim().toUpperCase().replace(/\s+/g, ' ');
@@ -1420,15 +1428,11 @@ function renderLoading() {
 
         <div class="section">
           <h2>WEEKLY GOAL</h2>
-          <div style="font-family:var(--font-display); font-size:9px; letter-spacing:1px; color:var(--gs-gold); font-weight:bold; margin-bottom:4px;">TEAM \u00b7 bonus gate (team pre-qualified vs members \u00f7 700)</div>
-          <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:8px;">
-            ${wb.weeks.map(wkChip).join('')}
+          <div style="font-family:var(--font-body); font-size:10px; color:var(--gs-faint); margin:-4px 0 8px;">Each week: <b style="color:var(--gs-gold);">TEAM</b> = bonus gate (team pre-qualified vs members \u00f7 700) \u00b7 <b style="color:var(--gs-gold);">JUAN</b> = his personal target (his pre-qualified vs his members \u00f7 700).</div>
+          <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:8px;">
+            ${wb.weeks.map((w, i) => comboChip(w, jWeeks[i] || { prequal: 0, goal: 0, met: false })).join('')}
           </div>
-          <div style="font-family:var(--font-display); font-size:9px; letter-spacing:1px; color:var(--gs-gold); font-weight:bold; margin:12px 0 4px;">JUAN \u00b7 personal (his pre-qualified vs his members \u00f7 700)</div>
-          <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:8px;">
-            ${jWeeks.map(wkChip).join('')}
-          </div>
-          <div style="font-family:var(--font-body); font-size:10px; color:var(--gs-faint); margin-top:6px;">Team row = the same Optimal gate shown on the team dashboard (drives the $15 bonus). Juan row is his personal target only \u2014 he is on manager pay, not the $15 team bonus.</div>
+          <div style="font-family:var(--font-body); font-size:10px; color:var(--gs-faint); margin-top:6px;">TEAM is the same Optimal gate from the team dashboard (drives the $15 / $16 bonus). JUAN is his personal target only \u2014 he is on manager pay, not the team bonus.</div>
         </div>
 
         <div class="section">
