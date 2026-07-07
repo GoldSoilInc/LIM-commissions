@@ -1200,7 +1200,16 @@ function renderLoading() {
       const normName = (s) => String(s || '').trim().toUpperCase().replace(/\s+/g, ' ');
       const leadKey = (o) => normName(o.name) + '|' + o.tx + '|' + o.ph;
       const pqSet = {}; a.leads.forEach(L => { pqSet[leadKey(L)] = true; });
-      const txIndex = {}; a.transfers.forEach(T => { txIndex[leadKey(T)] = T; });
+      // Enrichment lookup across ALL warm transfers (any date), name+sourcers then name-only fallback.
+      const cleanName = (v) => [v].map(x => String(x || '').trim()).filter(x => x && !/^[-\u2013\u2014.\s]+$/.test(x)).join(' ') || '(unnamed lead)';
+      const txExact = {}, txByName = {};
+      TRANSFER_ROWS.forEach(r => {
+        const tx = (r[WT_TEXT] || '').trim(); const ph = (r[WT_PHONE] || '').trim() || tx;
+        const rec = { name: cleanName(r[WT_NAME]), url: String(r[WT_URL] || '').trim(), status: String(r[WT_STATUS] || '').trim(), term: String(r[WT_TERM] || '').trim(), nurture: String(r[WT_NURTURE] || '').trim(), notes: String(r[WT_NOTES] || '').trim(), tx, ph };
+        txExact[normName(rec.name) + '|' + tx + '|' + ph] = rec;
+        if (!txByName[normName(rec.name)]) txByName[normName(rec.name)] = rec;
+      });
+      const lookupTx = (L) => txExact[leadKey(L)] || txByName[normName(L.name)] || {};
       const jForfeit = jBand.total === 0;
       const escapeAttr = (s) => String(s).replace(/"/g, '&quot;');
       const jTag = (bg, fg, bd, txt) => `<span style="display:inline-block;padding:0 6px;border-radius:8px;background:${bg};color:${fg};${bd ? 'border:1px solid ' + bd + ';' : ''}font-size:8px;font-weight:bold;vertical-align:1px;">${txt}</span>`;
@@ -1208,7 +1217,7 @@ function renderLoading() {
       // 1. Pre-qualified leads Juan PHONE-sourced (driven by PreQualified). SELF unlabeled; CALL labeled.
       a.leads.forEach(L => {
         if (L.ph !== MANAGER) return;
-        const T = txIndex[leadKey(L)] || {};
+        const T = lookupTx(L);
         if (L.tx === MANAGER) {
           jDetail.push({ name: L.name, url: T.url || '', status: T.status || '', term: T.term || '', nurture: T.nurture || '', notes: T.notes || '', earned: jBand.total, tag: '', note: '' });
         } else {
@@ -1218,7 +1227,7 @@ function renderLoading() {
       // 2. TEXT CREDIT: pre-qualified leads Juan texted that someone else phone-sourced.
       a.leads.forEach(L => {
         if (L.tx !== MANAGER || L.ph === MANAGER) return;
-        const T = txIndex[leadKey(L)] || {};
+        const T = lookupTx(L);
         const earned = jForfeit ? 0 : (bandOf[L.ph] || bandFor(0, 0)).textShare;
         jDetail.push({ name: L.name, url: T.url || '', status: T.status || '', term: T.term || '', nurture: T.nurture || '', notes: T.notes || '', earned, tag: jTag('var(--gs-cream)', 'var(--gs-dark-green)', 'var(--gs-gold)', 'TEXT CREDIT'), note: 'called by ' + L.ph });
       });
