@@ -931,7 +931,7 @@ function renderLoading() {
     // Text sourcer always gets textShare; the phone sourcer gets the remainder (total - textShare).
     // If one person both texted and called the lead, they receive the whole total.
     const BANDS = [
-      { max: 600,      total: 5.0, textShare: 1.0, label: '<600' },
+      { max: 600,      total: 4.0, textShare: 1.0, label: '<600' },
       { max: 700,      total: 3.0, textShare: 1.0, label: '600\u2013700' },
       { max: 800,      total: 1.5, textShare: 0.5, label: '700\u2013800' },
       { max: Infinity, total: 0,   textShare: 0,   label: '>800' }
@@ -1194,29 +1194,26 @@ function renderLoading() {
         const edge = 'border-bottom:1px solid #EFEADD;';
         const starTag = isStar ? ` <span style="display:inline-block;padding:1px 7px;border-radius:9px;background:var(--gs-dark-green);color:var(--gs-gold);font-family:var(--font-body);font-size:9px;font-weight:bold;letter-spacing:0.5px;vertical-align:1px;">\u2605 STAR +$50</span>` : '';
 
-        // Expandable detail: warm transfers this person is on, each with the amount they earned.
-        // Only pre-qualified leads earn; a person also earns a text credit on leads they texted that
-        // someone else called. Amounts sum to this person's Pre-Qualify $.
+        // Expandable detail: only cross-sourced leads — CALL (they called a lead someone else texted)
+        // and TEXT CREDIT (they texted a lead someone else called). SELF and non-pre-qualified are omitted.
         const escapeAttr = (s) => String(s).replace(/"/g, '&quot;');
         const forfeited = band.total === 0;   // own ratio >800 -> earns nothing
         const tagPill = (bg, fg, bd, txt) => `<span style="display:inline-block;padding:0 6px;border-radius:8px;background:${bg};color:${fg};${bd ? 'border:1px solid ' + bd + ';' : ''}font-size:8px;font-weight:bold;vertical-align:1px;">${txt}</span>`;
         const detail = [];
-        // Leads this person phone-sourced (their warm transfers as Sourcer Phone).
+        // CALL: this person phone-sourced a pre-qualified lead that someone else texted.
         (transfersByPhone[n] || []).forEach(T => {
-          const isPQ = !!pqSet[leadKey(T)];
-          let earned = 0, tag;
-          if (!isPQ) { tag = tagPill('var(--gs-cream)', 'var(--gs-faint)', 'var(--gs-border-soft)', 'PENDING'); }
-          else if (T.tx === n) { earned = band.total; tag = tagPill('var(--gs-dark-green)', 'var(--gs-gold)', '', 'SELF'); }
-          else { earned = band.phoneShare; tag = tagPill('var(--gs-gold)', 'var(--gs-dark-green)', '', 'CALL'); }
-          detail.push({ name: T.name, url: T.url, status: T.status, term: T.term, nurture: T.nurture, notes: T.notes, earned, tag, note: (isPQ && T.tx !== n) ? 'texted by ' + T.tx : '' });
+          if (T.tx === n) return;                 // skip SELF
+          if (!pqSet[leadKey(T)]) return;         // skip not-yet-pre-qualified
+          detail.push({ name: T.name, url: T.url, status: T.status, term: T.term, nurture: T.nurture, notes: T.notes, earned: band.phoneShare, tag: tagPill('var(--gs-gold)', 'var(--gs-dark-green)', '', 'CALL'), note: 'texted by ' + T.tx });
         });
-        // Text credits: leads this person texted that someone else phone-sourced (pre-qualified).
+        // TEXT CREDIT: this person texted a pre-qualified lead that someone else phone-sourced.
         a.leads.forEach(L => {
           if (L.tx !== n || L.ph === n) return;
           const T = txIndex[leadKey(L)] || {};
           const earned = forfeited ? 0 : (bandOf[L.ph] || bandFor(0, 0)).textShare;
           detail.push({ name: L.name, url: T.url || '', status: T.status || '', term: T.term || '', nurture: T.nurture || '', notes: T.notes || '', earned, tag: tagPill('var(--gs-cream)', 'var(--gs-dark-green)', 'var(--gs-gold)', 'TEXT CREDIT'), note: 'called by ' + L.ph });
         });
+        const shownEarned = detail.reduce((s, d) => s + d.earned, 0);
 
         const detailId = 'lead_' + idx;
         const hasDetail = detail.length > 0;
@@ -1235,7 +1232,7 @@ function renderLoading() {
 
         const detailRow = hasDetail ? `<tr id="${detailId}" style="display:none;background:#FBF7EC;">
           <td colspan="${STAR_ENABLED ? 9 : 8}" style="padding:6px 24px 12px 34px;">
-            <div style="font-family:var(--font-display); font-size:9px; letter-spacing:1px; color:var(--gs-gold); font-weight:bold; padding-bottom:4px;">WARM TRANSFERS \u00b7 ${detail.length} \u00b7 earned ${fmtUSD(base)}</div>
+            <div style="font-family:var(--font-display); font-size:9px; letter-spacing:1px; color:var(--gs-gold); font-weight:bold; padding-bottom:4px;">CALL &amp; TEXT CREDIT \u00b7 ${detail.length} \u00b7 ${fmtUSD(shownEarned)}</div>
             <table style="width:100%;border-collapse:collapse;font-size:11px;">
               <thead><tr>
                 <th style="text-align:left;padding:2px 8px;font-size:8.5px;color:var(--gs-gold);">LEAD</th>
@@ -1321,7 +1318,6 @@ function renderLoading() {
           <h2>WEEKLY TEAM BONUS</h2>
           <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(120px,1fr)); gap:8px; margin-bottom:8px;">${weekChips}</div>
           <div style="font-family:var(--font-body); font-size:11px; color:var(--gs-dark-green);"><b>${wb.metWeeks}</b> week(s) hit \u00b7 $15 per active member per hit week = <b>${fmtUSD(wb.teamTotal)}</b> total</div>
-          <div style="font-family:var(--font-body); font-size:10px; color:var(--gs-faint); margin-top:4px;">Goal per week = campaign members \u00f7 700 (Optimal). Gate = pre-qualified \u2265 goal. Anyone out the whole week (zero activity) is skipped. Juan is excluded (separate manager pay).</div>
         </div>
 
         <div class="section">
@@ -1357,7 +1353,6 @@ function renderLoading() {
             <span style="font-family:var(--font-display); font-size:10px; font-weight:bold; letter-spacing:1px; color:var(--gs-gold);">REWARD BANDS \u00b7 members \u00f7 pre-qualified (phone)</span>
             ${BANDS.map(b => `<span style="font-family:var(--font-body); font-size:11px; padding:3px 10px; border-radius:12px; background:var(--gs-cream); border:0.5px solid var(--gs-border-soft); color:var(--gs-dark-green);"><b>${b.label}</b> &rarr; $${b.total} ($${b.textShare} text / $${(b.total - b.textShare)} phone)</span>`).join('')}
           </div>
-          <div style="font-family:var(--font-body); font-size:10px; color:var(--gs-faint); margin-top:8px;">Click a name to see that person's warm transfers (Full Name links to the lead). Each lead's band comes from the <b>phone sourcer's ratio</b> (their members \u00f7 pre-qualified). The texter gets the text share, the phone sourcer gets the rest; anyone whose own ratio is &gt;800 earns $0. Ratio column = members \u00f7 pre-qualified. Weekly Bonus = $15 per active member for each week the team hits Optimal (\u00f7700); anyone out the whole week is skipped and Juan is excluded.${STAR_ENABLED ? " Star = $50 to the month's top pre-qualifier; the winner's name shows only in the month's last week." : ''}</div>
         </div>
 
         ${renderFooter()}
