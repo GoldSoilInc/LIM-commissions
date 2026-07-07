@@ -1173,27 +1173,17 @@ function renderLoading() {
       const teamTotal = teamBase + wb.teamTotal + starBonusTotal;
 
       // Per-person warm transfers (by phone sourcer) for the expandable detail list.
-      const transfersByPhone = {};
-      a.transfers.forEach(T => { (transfersByPhone[T.ph] = transfersByPhone[T.ph] || []).push(T); });
+      const transfersByPhone = {}, transfersByText = {};
+      a.transfers.forEach(T => {
+        (transfersByPhone[T.ph] = transfersByPhone[T.ph] || []).push(T);
+        (transfersByText[T.tx] = transfersByText[T.tx] || []).push(T);
+      });
 
       // Match warm transfers <-> pre-qualified leads (only pre-qualified leads earn) by name + sourcers.
       const normName = (s) => String(s || '').trim().toUpperCase().replace(/\s+/g, ' ');
       const leadKey = (o) => normName(o.name) + '|' + o.tx + '|' + o.ph;
       const pqSet = {};                       // which transfers became pre-qualified
       a.leads.forEach(L => { pqSet[leadKey(L)] = true; });
-
-      // Enrichment lookup (Lead URL / status / reasons / notes) across ALL warm transfers, any date,
-      // so a pre-qualified lead still finds its Salesforce link even if the transfer was logged in a
-      // different period or with different sourcers. Falls back to name-only when name+sourcers misses.
-      const cleanName = (v) => [v].map(x => String(x || '').trim()).filter(x => x && !/^[-\u2013\u2014.\s]+$/.test(x)).join(' ') || '(unnamed lead)';
-      const txExact = {}, txByName = {};
-      TRANSFER_ROWS.forEach(r => {
-        const tx = (r[WT_TEXT] || '').trim(); const ph = (r[WT_PHONE] || '').trim() || tx;
-        const rec = { name: cleanName(r[WT_NAME]), url: String(r[WT_URL] || '').trim(), status: String(r[WT_STATUS] || '').trim(), term: String(r[WT_TERM] || '').trim(), nurture: String(r[WT_NURTURE] || '').trim(), notes: String(r[WT_NOTES] || '').trim(), tx, ph };
-        txExact[normName(rec.name) + '|' + tx + '|' + ph] = rec;
-        if (!txByName[normName(rec.name)]) txByName[normName(rec.name)] = rec;   // first row with this name
-      });
-      const lookupTx = (L) => txExact[leadKey(L)] || txByName[normName(L.name)] || {};
 
 
       // Grouped by person. Each block: a primary (self) row carrying the person's
@@ -1221,28 +1211,23 @@ function renderLoading() {
         const forfeited = band.total === 0;   // own ratio >800 -> earns nothing
         const tagPill = (bg, fg, bd, txt) => `<span style="display:inline-block;padding:0 6px;border-radius:8px;background:${bg};color:${fg};${bd ? 'border:1px solid ' + bd + ';' : ''}font-size:8px;font-weight:bold;vertical-align:1px;">${txt}</span>`;
         const detail = [];
-        // 1. Pre-qualified leads this person PHONE-sourced (driven by PreQualified, so none are missed).
-        //    SELF (they also texted it) stays unlabeled; CALL (someone else texted) is labeled.
-        a.leads.forEach(L => {
-          if (L.ph !== n) return;
-          const T = lookupTx(L);
-          if (L.tx === n) {
-            detail.push({ name: L.name, url: T.url || '', status: T.status || '', term: T.term || '', nurture: T.nurture || '', notes: T.notes || '', earned: band.total, tag: '', note: '' });
+        // Driven by the WARM TRANSFERS report. Every row is a warm-transfer record, so its Lead Status,
+        // URL and reason/notes columns are always present. Earned amount is looked up from PreQualified.
+        // 1. Warm transfers this person PHONE-sourced.
+        (transfersByPhone[n] || []).forEach(T => {
+          const isPQ = !!pqSet[leadKey(T)];
+          if (isPQ && T.tx !== n) {
+            detail.push({ name: T.name, url: T.url, status: T.status, term: T.term, nurture: T.nurture, notes: T.notes, earned: band.phoneShare, tag: tagPill('var(--gs-gold)', 'var(--gs-dark-green)', '', 'CALL'), note: 'texted by ' + T.tx });
           } else {
-            detail.push({ name: L.name, url: T.url || '', status: T.status || '', term: T.term || '', nurture: T.nurture || '', notes: T.notes || '', earned: band.phoneShare, tag: tagPill('var(--gs-gold)', 'var(--gs-dark-green)', '', 'CALL'), note: 'texted by ' + L.tx });
+            // SELF (pre-qualified, own text+call) -> full band; nurture (not pre-qualified) -> $0. Both unlabeled.
+            detail.push({ name: T.name, url: T.url, status: T.status, term: T.term, nurture: T.nurture, notes: T.notes, earned: isPQ ? band.total : 0, tag: '', note: '' });
           }
         });
-        // 2. TEXT CREDIT: pre-qualified leads this person TEXTED that someone else phone-sourced.
-        a.leads.forEach(L => {
-          if (L.tx !== n || L.ph === n) return;
-          const T = lookupTx(L);
-          const earned = forfeited ? 0 : (bandOf[L.ph] || bandFor(0, 0)).textShare;
-          detail.push({ name: L.name, url: T.url || '', status: T.status || '', term: T.term || '', nurture: T.nurture || '', notes: T.notes || '', earned, tag: tagPill('var(--gs-cream)', 'var(--gs-dark-green)', 'var(--gs-gold)', 'TEXT CREDIT'), note: 'called by ' + L.ph });
-        });
-        // 3. This person's warm transfers that are NOT yet pre-qualified (nurture) -> $0, unlabeled.
-        (transfersByPhone[n] || []).forEach(T => {
-          if (pqSet[leadKey(T)]) return;   // pre-qualified ones already listed above
-          detail.push({ name: T.name, url: T.url, status: T.status, term: T.term, nurture: T.nurture, notes: T.notes, earned: 0, tag: '', note: '' });
+        // 2. TEXT CREDIT: warm transfers this person TEXTED that someone else phone-sourced (pre-qualified only).
+        (transfersByText[n] || []).forEach(T => {
+          if (T.ph === n || !pqSet[leadKey(T)]) return;   // self handled above; only pre-qualified earn a text credit
+          const earned = forfeited ? 0 : (bandOf[T.ph] || bandFor(0, 0)).textShare;
+          detail.push({ name: T.name, url: T.url, status: T.status, term: T.term, nurture: T.nurture, notes: T.notes, earned, tag: tagPill('var(--gs-cream)', 'var(--gs-dark-green)', 'var(--gs-gold)', 'TEXT CREDIT'), note: 'called by ' + T.ph });
         });
         const shownEarned = detail.reduce((s, d) => s + d.earned, 0);
 
