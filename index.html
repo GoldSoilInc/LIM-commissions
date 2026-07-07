@@ -1200,11 +1200,15 @@ function renderLoading() {
         const forfeited = band.total === 0;   // own ratio >800 -> earns nothing
         const tagPill = (bg, fg, bd, txt) => `<span style="display:inline-block;padding:0 6px;border-radius:8px;background:${bg};color:${fg};${bd ? 'border:1px solid ' + bd + ';' : ''}font-size:8px;font-weight:bold;vertical-align:1px;">${txt}</span>`;
         const detail = [];
-        // CALL: this person phone-sourced a pre-qualified lead that someone else texted.
+        // All warm transfers this person phone-sourced. Only CALL (pre-qualified, someone else texted)
+        // gets a tag; SELF (pre-qualified own text+call) and not-yet-pre-qualified leads stay unlabeled.
         (transfersByPhone[n] || []).forEach(T => {
-          if (T.tx === n) return;                 // skip SELF
-          if (!pqSet[leadKey(T)]) return;         // skip not-yet-pre-qualified
-          detail.push({ name: T.name, url: T.url, status: T.status, term: T.term, nurture: T.nurture, notes: T.notes, earned: band.phoneShare, tag: tagPill('var(--gs-gold)', 'var(--gs-dark-green)', '', 'CALL'), note: 'texted by ' + T.tx });
+          const isPQ = !!pqSet[leadKey(T)];
+          if (isPQ && T.tx !== n) {
+            detail.push({ name: T.name, url: T.url, status: T.status, term: T.term, nurture: T.nurture, notes: T.notes, earned: band.phoneShare, tag: tagPill('var(--gs-gold)', 'var(--gs-dark-green)', '', 'CALL'), note: 'texted by ' + T.tx });
+          } else {
+            detail.push({ name: T.name, url: T.url, status: T.status, term: T.term, nurture: T.nurture, notes: T.notes, earned: isPQ ? band.total : 0, tag: '', note: '' });
+          }
         });
         // TEXT CREDIT: this person texted a pre-qualified lead that someone else phone-sourced.
         a.leads.forEach(L => {
@@ -1232,7 +1236,7 @@ function renderLoading() {
 
         const detailRow = hasDetail ? `<tr id="${detailId}" style="display:none;background:#FBF7EC;">
           <td colspan="${STAR_ENABLED ? 9 : 8}" style="padding:6px 24px 12px 34px;">
-            <div style="font-family:var(--font-display); font-size:9px; letter-spacing:1px; color:var(--gs-gold); font-weight:bold; padding-bottom:4px;">CALL &amp; TEXT CREDIT \u00b7 ${detail.length} \u00b7 ${fmtUSD(shownEarned)}</div>
+            <div style="font-family:var(--font-display); font-size:9px; letter-spacing:1px; color:var(--gs-gold); font-weight:bold; padding-bottom:4px;">LEADS \u00b7 ${detail.length} \u00b7 earned ${fmtUSD(shownEarned)}</div>
             <table style="width:100%;border-collapse:collapse;font-size:11px;">
               <thead><tr>
                 <th style="text-align:left;padding:2px 8px;font-size:8.5px;color:var(--gs-gold);">LEAD</th>
