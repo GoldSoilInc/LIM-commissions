@@ -921,7 +921,7 @@ function renderLoading() {
     const ROSTER = ['Ahmed Abdelbaset', 'Juan Pablo Larrea', 'Martina Misheal', 'Maryam Selim', 'Mina Kamal', 'Nada Ahmed'];
 
     // ---- Tunables (change here, no other edits needed) ----
-    const WEEKLY_BONUS = 15, STAR_BONUS = 50;
+    const WEEKLY_BONUS = 15, WEEKLY_BONUS_TOP = 16, STAR_BONUS = 50;
     const STAR_ENABLED = true;   // Star winner's name + $50 appear only in the month's last week.
 
     // Goal divisors: expected pre-qualified = campaign members / divisor.
@@ -1091,15 +1091,19 @@ function renderLoading() {
         const segFrom = new Date(Math.max(ws.getTime(), from.getTime()));
         const segTo = new Date(Math.min(we.getTime(), to.getTime()));
         const a = aggregate(segFrom, segTo);
-        const goal = Math.floor(a.members / GOAL_OPTIMAL);   // bonus gate = Optimal (members / 700)
-        const met = a.prequal >= goal && goal > 0;           // gate metric = pre-qualified
+        const optGoal = Math.floor(a.members / GOAL_OPTIMAL);   // gate to earn a bonus (members / 700)
+        const topGoal = Math.floor(a.members / GOAL_TOP);       // reaching this bumps the rate to $16 (members / 600)
+        let met = false, rate = 0;
+        if (topGoal > 0 && a.prequal >= topGoal) { met = true; rate = WEEKLY_BONUS_TOP; }
+        else if (optGoal > 0 && a.prequal >= optGoal) { met = true; rate = WEEKLY_BONUS; }
+        const goal = optGoal;
         // Active (present) = any activity that week. Out-the-whole-week => not eligible for the $15.
         const active = {};
         Object.keys(a.people).forEach(n => {
           const p = a.people[n];
           if (p.members > 0 || p.warmTPhone > 0 || p.pqText > 0 || p.pqPhone > 0) active[n] = true;
         });
-        weeks.push({ ws: new Date(ws), we: new Date(we), members: a.members, prequal: a.prequal, goal, met, active });
+        weeks.push({ ws: new Date(ws), we: new Date(we), members: a.members, prequal: a.prequal, goal, topGoal, met, rate, active });
         ws = new Date(ws); ws.setDate(ws.getDate() + 7);
       }
       const metWeeks = weeks.filter(w => w.met).length;
@@ -1107,7 +1111,7 @@ function renderLoading() {
       const bonusFor = (name) => {
         if (name === MANAGER) return 0;
         let sum = 0;
-        for (const w of weeks) if (w.met && w.active[name]) sum += WEEKLY_BONUS;
+        for (const w of weeks) if (w.met && w.active[name]) sum += w.rate;
         return sum;
       };
       let teamTotal = 0;
@@ -1182,7 +1186,7 @@ function renderLoading() {
       const jWeeks = [];
       const wkChip = (w) => `<div style="display:flex;justify-content:space-between;gap:12px;padding:7px 12px;border-radius:6px;background:${w.met ? 'var(--gs-dark-green)' : '#fff'};border:1px solid ${w.met ? 'var(--gs-dark-green)' : 'var(--gs-border-soft)'};">
         <span style="font-family:var(--font-body);font-size:11px;color:${w.met ? 'var(--gs-gold)' : 'var(--gs-faint)'};font-weight:bold;">Wk ${(w.ws.getMonth() + 1)}/${w.ws.getDate()}</span>
-        <span style="font-family:var(--font-body);font-size:11px;color:${w.met ? 'var(--gs-cream)' : 'var(--gs-dark-green)'};">${w.prequal} / ${w.goal} ${w.met ? '\u2713' : ''}</span>
+        <span style="font-family:var(--font-body);font-size:11px;color:${w.met ? 'var(--gs-cream)' : 'var(--gs-dark-green)'};">${w.prequal} / ${w.goal} ${w.met ? '\u2713' + (w.rate ? ' $' + w.rate : '') : ''}</span>
       </div>`;
       { let ws = mondayOf(state.from);
         while (ws <= state.to) {
@@ -1280,8 +1284,8 @@ function renderLoading() {
         <div class="section">
           <h2>GOALS \u00b7 PRE-QUALIFIED</h2>
           <div style="font-family:var(--font-body); font-size:10px; color:var(--gs-faint); margin:-4px 0 8px;">Team-wide target (same as the team dashboard) \u00b7 team pre-qualified: <b>${a.prequal}</b> of ${a.members.toLocaleString('en-US')} members</div>
-          <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px;">
-            ${[['TOP TARGET', a.goalTop, GOAL_TOP], ['OPTIMAL', a.goalOptimal, GOAL_OPTIMAL], ['BARE MINIMUM', a.goalMin, GOAL_MIN]].map(([lbl, goal, div]) => {
+          <div style="display:grid; grid-template-columns:repeat(2,1fr); gap:12px;">
+            ${[['TOP TARGET', a.goalTop, GOAL_TOP], ['OPTIMAL', a.goalOptimal, GOAL_OPTIMAL]].map(([lbl, goal, div]) => {
               const hit = a.prequal >= goal && goal > 0;
               return `<div style="background:${hit ? 'var(--gs-dark-green)' : 'var(--gs-cream)'}; border:1px solid ${hit ? 'var(--gs-dark-green)' : 'var(--gs-border-soft)'}; border-radius:8px; padding:12px 16px;">
                 <div style="font-family:var(--font-display); font-size:10px; letter-spacing:1.5px; font-weight:bold; color:var(--gs-gold);">${lbl}${lbl === 'OPTIMAL' ? ' \u00b7 bonus gate' : ''}</div>
