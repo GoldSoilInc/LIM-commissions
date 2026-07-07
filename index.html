@@ -1305,8 +1305,7 @@ function renderLoading() {
             <div style="font-family:var(--font-body); font-size:11px; color:var(--gs-gold); margin-top:2px;">${star.count} pre-qualified \u00b7 +$50 (awarded)</div>
             ` : `
             <div style="font-family:var(--font-display); font-weight:bold; font-size:11px; letter-spacing:2px; color:var(--gs-gold);">POTENTIAL STAR OF THE MONTH</div>
-            ${top2.length ? top2.map((t, i) => `<div style="font-family:var(--font-display); font-weight:bold; font-size:${i === 0 ? '17' : '14'}px; color:var(--gs-cream); margin-top:${i === 0 ? '4' : '1'}px;">${i + 1}. ${t.name} <span style="color:var(--gs-gold); font-weight:normal; font-size:11px;">\u00b7 ${t.count}</span></div>`).join('') : `<div style="font-family:var(--font-display); font-size:16px; color:var(--gs-cream); margin-top:4px; opacity:0.85;">\u2014</div>`}
-            <div style="font-family:var(--font-body); font-size:10px; color:var(--gs-gold); margin-top:3px; opacity:0.85;">top 2 \u00b7 winner + $50 on the last day</div>
+            ${top2.length ? top2.map((t, i) => `<div style="font-family:var(--font-display); font-weight:bold; font-size:${i === 0 ? '17' : '14'}px; color:var(--gs-cream); margin-top:${i === 0 ? '4' : '1'}px;">${i + 1}. ${t.name} <span style="color:var(--gs-gold); font-weight:normal; font-size:11px;">\u00b7 ${t.count} pre-qual</span></div>`).join('') : `<div style="font-family:var(--font-display); font-size:16px; color:var(--gs-cream); margin-top:4px; opacity:0.85;">\u2014</div>`}
             `}
           </div>` : ''}
         </div>
