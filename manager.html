@@ -1204,11 +1204,14 @@ function renderLoading() {
       const escapeAttr = (s) => String(s).replace(/"/g, '&quot;');
       const jTag = (bg, fg, bd, txt) => `<span style="display:inline-block;padding:0 6px;border-radius:8px;background:${bg};color:${fg};${bd ? 'border:1px solid ' + bd + ';' : ''}font-size:8px;font-weight:bold;vertical-align:1px;">${txt}</span>`;
       const jDetail = [];
-      // CALL: Juan phone-sourced a pre-qualified lead someone else texted.
+      // All warm transfers Juan phone-sourced. Only CALL gets a tag; SELF and not-yet-pre-qualified stay unlabeled.
       a.transfers.filter(T => T.ph === MANAGER).forEach(T => {
-        if (T.tx === MANAGER) return;             // skip SELF
-        if (!pqSet[leadKey(T)]) return;           // skip not-yet-pre-qualified
-        jDetail.push({ name: T.name, url: T.url, status: T.status, term: T.term, nurture: T.nurture, notes: T.notes, earned: jBand.phoneShare, tag: jTag('var(--gs-gold)', 'var(--gs-dark-green)', '', 'CALL'), note: 'texted by ' + T.tx });
+        const isPQ = !!pqSet[leadKey(T)];
+        if (isPQ && T.tx !== MANAGER) {
+          jDetail.push({ name: T.name, url: T.url, status: T.status, term: T.term, nurture: T.nurture, notes: T.notes, earned: jBand.phoneShare, tag: jTag('var(--gs-gold)', 'var(--gs-dark-green)', '', 'CALL'), note: 'texted by ' + T.tx });
+        } else {
+          jDetail.push({ name: T.name, url: T.url, status: T.status, term: T.term, nurture: T.nurture, notes: T.notes, earned: isPQ ? jBand.total : 0, tag: '', note: '' });
+        }
       });
       // TEXT CREDIT: Juan texted a pre-qualified lead someone else phone-sourced.
       a.leads.forEach(L => {
@@ -1287,7 +1290,7 @@ function renderLoading() {
         </div>
 
         <div class="section">
-          <h2>LEAD BREAKDOWN \u00b7 CALL &amp; TEXT CREDIT \u00b7 ${jDetail.length} \u00b7 ${fmtUSD(jShownEarned)}</h2>
+          <h2>LEAD BREAKDOWN \u00b7 ${jDetail.length} \u00b7 earned ${fmtUSD(jShownEarned)}</h2>
           ${jDetail.length > 0 ? `
           <table style="width:100%;border-collapse:collapse;font-size:12px;">
             <thead><tr><th style="text-align:left;">LEAD</th><th style="text-align:left;">LEAD STATUS</th><th style="text-align:left;">REASON FOR TERMINATION</th><th style="text-align:left;">REASON FOR NURTURE</th><th style="text-align:left;">CLOSER'S NOTES</th><th class="num">EARNED</th></tr></thead>
