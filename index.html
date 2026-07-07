@@ -1201,22 +1201,28 @@ function renderLoading() {
         const forfeited = band.total === 0;   // own ratio >800 -> earns nothing
         const tagPill = (bg, fg, bd, txt) => `<span style="display:inline-block;padding:0 6px;border-radius:8px;background:${bg};color:${fg};${bd ? 'border:1px solid ' + bd + ';' : ''}font-size:8px;font-weight:bold;vertical-align:1px;">${txt}</span>`;
         const detail = [];
-        // All warm transfers this person phone-sourced. Only CALL (pre-qualified, someone else texted)
-        // gets a tag; SELF (pre-qualified own text+call) and not-yet-pre-qualified leads stay unlabeled.
-        (transfersByPhone[n] || []).forEach(T => {
-          const isPQ = !!pqSet[leadKey(T)];
-          if (isPQ && T.tx !== n) {
-            detail.push({ name: T.name, url: T.url, status: T.status, term: T.term, nurture: T.nurture, notes: T.notes, earned: band.phoneShare, tag: tagPill('var(--gs-gold)', 'var(--gs-dark-green)', '', 'CALL'), note: 'texted by ' + T.tx });
+        // 1. Pre-qualified leads this person PHONE-sourced (driven by PreQualified, so none are missed).
+        //    SELF (they also texted it) stays unlabeled; CALL (someone else texted) is labeled.
+        a.leads.forEach(L => {
+          if (L.ph !== n) return;
+          const T = txIndex[leadKey(L)] || {};
+          if (L.tx === n) {
+            detail.push({ name: L.name, url: T.url || '', status: T.status || '', term: T.term || '', nurture: T.nurture || '', notes: T.notes || '', earned: band.total, tag: '', note: '' });
           } else {
-            detail.push({ name: T.name, url: T.url, status: T.status, term: T.term, nurture: T.nurture, notes: T.notes, earned: isPQ ? band.total : 0, tag: '', note: '' });
+            detail.push({ name: L.name, url: T.url || '', status: T.status || '', term: T.term || '', nurture: T.nurture || '', notes: T.notes || '', earned: band.phoneShare, tag: tagPill('var(--gs-gold)', 'var(--gs-dark-green)', '', 'CALL'), note: 'texted by ' + L.tx });
           }
         });
-        // TEXT CREDIT: this person texted a pre-qualified lead that someone else phone-sourced.
+        // 2. TEXT CREDIT: pre-qualified leads this person TEXTED that someone else phone-sourced.
         a.leads.forEach(L => {
           if (L.tx !== n || L.ph === n) return;
           const T = txIndex[leadKey(L)] || {};
           const earned = forfeited ? 0 : (bandOf[L.ph] || bandFor(0, 0)).textShare;
           detail.push({ name: L.name, url: T.url || '', status: T.status || '', term: T.term || '', nurture: T.nurture || '', notes: T.notes || '', earned, tag: tagPill('var(--gs-cream)', 'var(--gs-dark-green)', 'var(--gs-gold)', 'TEXT CREDIT'), note: 'called by ' + L.ph });
+        });
+        // 3. This person's warm transfers that are NOT yet pre-qualified (nurture) -> $0, unlabeled.
+        (transfersByPhone[n] || []).forEach(T => {
+          if (pqSet[leadKey(T)]) return;   // pre-qualified ones already listed above
+          detail.push({ name: T.name, url: T.url, status: T.status, term: T.term, nurture: T.nurture, notes: T.notes, earned: 0, tag: '', note: '' });
         });
         const shownEarned = detail.reduce((s, d) => s + d.earned, 0);
 
