@@ -921,7 +921,7 @@ function renderLoading() {
     const ROSTER = ['Ahmed Abdelbaset', 'Juan Pablo Larrea', 'Martina Misheal', 'Maryam Selim', 'Mina Kamal', 'Nada Ahmed'];
 
     // ---- Tunables (change here, no other edits needed) ----
-    const WEEKLY_BONUS = 15, STAR_BONUS = 50;
+    const WEEKLY_BONUS = 15, WEEKLY_BONUS_TOP = 16, STAR_BONUS = 50;
     const STAR_ENABLED = true;   // Star section always visible; the winner's name + $50 appear only in the month's last week.
 
     // Goal divisors: expected pre-qualified = campaign members / divisor.
@@ -1091,15 +1091,19 @@ function renderLoading() {
         const segFrom = new Date(Math.max(ws.getTime(), from.getTime()));
         const segTo = new Date(Math.min(we.getTime(), to.getTime()));
         const a = aggregate(segFrom, segTo);
-        const goal = Math.floor(a.members / GOAL_OPTIMAL);   // bonus gate = Optimal (members / 700)
-        const met = a.prequal >= goal && goal > 0;           // gate metric = pre-qualified
+        const optGoal = Math.floor(a.members / GOAL_OPTIMAL);   // gate to earn a bonus (members / 700)
+        const topGoal = Math.floor(a.members / GOAL_TOP);       // reaching this bumps the rate to $16 (members / 600)
+        let met = false, rate = 0;
+        if (topGoal > 0 && a.prequal >= topGoal) { met = true; rate = WEEKLY_BONUS_TOP; }
+        else if (optGoal > 0 && a.prequal >= optGoal) { met = true; rate = WEEKLY_BONUS; }
+        const goal = optGoal;                                    // chip still shows the Optimal gate
         // Active (present) = any activity that week. Out-the-whole-week => not eligible for the $15.
         const active = {};
         Object.keys(a.people).forEach(n => {
           const p = a.people[n];
           if (p.members > 0 || p.warmTPhone > 0 || p.pqText > 0 || p.pqPhone > 0) active[n] = true;
         });
-        weeks.push({ ws: new Date(ws), we: new Date(we), members: a.members, prequal: a.prequal, goal, met, active });
+        weeks.push({ ws: new Date(ws), we: new Date(we), members: a.members, prequal: a.prequal, goal, topGoal, met, rate, active });
         ws = new Date(ws); ws.setDate(ws.getDate() + 7);
       }
       const metWeeks = weeks.filter(w => w.met).length;
@@ -1107,7 +1111,7 @@ function renderLoading() {
       const bonusFor = (name) => {
         if (name === MANAGER) return 0;
         let sum = 0;
-        for (const w of weeks) if (w.met && w.active[name]) sum += WEEKLY_BONUS;
+        for (const w of weeks) if (w.met && w.active[name]) sum += w.rate;
         return sum;
       };
       let teamTotal = 0;
@@ -1145,8 +1149,12 @@ function renderLoading() {
       // last week; before that it's a pending "month leader" badge worth $0.
       const mw = monthOwnedWindow(state.to);
       const monthAgg = aggregate(mw.firstMon, state.to);
-      let star = { name: '\u2014', count: 0 };
-      Object.keys(monthAgg.people).forEach(n => { if (monthAgg.people[n].pqPhone > star.count) star = { name: n, count: monthAgg.people[n].pqPhone }; });
+      const monthRanked = Object.keys(monthAgg.people)
+        .map(n => ({ name: n, count: monthAgg.people[n].pqPhone }))
+        .filter(x => x.count > 0)
+        .sort((a, b) => b.count - a.count);
+      const star = monthRanked[0] || { name: '\u2014', count: 0 };
+      const top2 = monthRanked.slice(0, 2);
       const starActive = star.count > 0;
       const monthEnd = new Date(state.to.getFullYear(), state.to.getMonth() + 1, 0);  // last calendar day of the viewed month
       const starPayable = iso(state.to) >= iso(monthEnd);         // reveal only on the last day of the month
@@ -1290,7 +1298,7 @@ function renderLoading() {
         const label = `${(w.ws.getMonth() + 1)}/${w.ws.getDate()}`;
         return `<div style="display:flex;justify-content:space-between;gap:12px;padding:7px 12px;border-radius:6px;background:${w.met ? 'var(--gs-dark-green)' : '#fff'};border:1px solid ${w.met ? 'var(--gs-dark-green)' : 'var(--gs-border-soft)'};">
           <span style="font-family:var(--font-body);font-size:11px;color:${w.met ? 'var(--gs-gold)' : 'var(--gs-faint)'};font-weight:bold;">Wk ${label}</span>
-          <span style="font-family:var(--font-body);font-size:11px;color:${w.met ? 'var(--gs-cream)' : 'var(--gs-dark-green)'};">${w.prequal} / ${w.goal} ${w.met ? '\u2713' : ''}</span>
+          <span style="font-family:var(--font-body);font-size:11px;color:${w.met ? 'var(--gs-cream)' : 'var(--gs-dark-green)'};">${w.prequal} / ${w.goal} ${w.met ? '\u2713 $' + w.rate : ''}</span>
         </div>`;
       }).join('');
 
@@ -1306,13 +1314,14 @@ function renderLoading() {
           </div>
           ${STAR_ENABLED ? `
           <div style="text-align:right;">
-            <div style="font-family:var(--font-display); font-weight:bold; font-size:11px; letter-spacing:2px; color:var(--gs-gold);">STAR OF THE MONTH</div>
             ${starShow ? `
+            <div style="font-family:var(--font-display); font-weight:bold; font-size:11px; letter-spacing:2px; color:var(--gs-gold);">STAR OF THE MONTH</div>
             <div style="font-family:var(--font-display); font-weight:bold; font-size:20px; color:var(--gs-cream); margin-top:4px;">\u2605 ${star.name}</div>
             <div style="font-family:var(--font-body); font-size:11px; color:var(--gs-gold); margin-top:2px;">${star.count} pre-qualified \u00b7 +$50 (awarded)</div>
             ` : `
-            <div style="font-family:var(--font-display); font-size:16px; color:var(--gs-cream); margin-top:4px; opacity:0.85;">\u2014</div>
-            <div style="font-family:var(--font-body); font-size:11px; color:var(--gs-gold); margin-top:2px;">revealed on the last day of the month</div>
+            <div style="font-family:var(--font-display); font-weight:bold; font-size:11px; letter-spacing:2px; color:var(--gs-gold);">POTENTIAL STAR OF THE MONTH</div>
+            ${top2.length ? top2.map((t, i) => `<div style="font-family:var(--font-display); font-weight:bold; font-size:${i === 0 ? '17' : '14'}px; color:var(--gs-cream); margin-top:${i === 0 ? '4' : '1'}px;">${i + 1}. ${t.name} <span style="color:var(--gs-gold); font-weight:normal; font-size:11px;">\u00b7 ${t.count}</span></div>`).join('') : `<div style="font-family:var(--font-display); font-size:16px; color:var(--gs-cream); margin-top:4px; opacity:0.85;">\u2014</div>`}
+            <div style="font-family:var(--font-body); font-size:10px; color:var(--gs-gold); margin-top:3px; opacity:0.85;">top 2 \u00b7 winner + $50 on the last day</div>
             `}
           </div>` : ''}
         </div>
@@ -1325,8 +1334,8 @@ function renderLoading() {
 
         <div class="section">
           <h2>GOALS \u00b7 PRE-QUALIFIED</h2>
-          <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px;">
-            ${[['TOP TARGET', a.goalTop, GOAL_TOP], ['OPTIMAL', a.goalOptimal, GOAL_OPTIMAL], ['BARE MINIMUM', a.goalMin, GOAL_MIN]].map(([lbl, goal, div]) => {
+          <div style="display:grid; grid-template-columns:repeat(2,1fr); gap:12px;">
+            ${[['TOP TARGET', a.goalTop, GOAL_TOP], ['OPTIMAL', a.goalOptimal, GOAL_OPTIMAL]].map(([lbl, goal, div]) => {
               const hit = a.prequal >= goal && goal > 0;
               return `<div style="background:${hit ? 'var(--gs-dark-green)' : 'var(--gs-cream)'}; border:1px solid ${hit ? 'var(--gs-dark-green)' : 'var(--gs-border-soft)'}; border-radius:8px; padding:12px 16px;">
                 <div style="font-family:var(--font-display); font-size:10px; letter-spacing:1.5px; font-weight:bold; color:${hit ? 'var(--gs-gold)' : 'var(--gs-gold)'};">${lbl}${lbl === 'OPTIMAL' ? ' \u00b7 bonus gate' : ''}</div>
@@ -1340,7 +1349,7 @@ function renderLoading() {
         <div class="section">
           <h2>WEEKLY TEAM BONUS</h2>
           <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(120px,1fr)); gap:8px; margin-bottom:8px;">${weekChips}</div>
-          <div style="font-family:var(--font-body); font-size:11px; color:var(--gs-dark-green);"><b>${wb.metWeeks}</b> week(s) hit \u00b7 $15 per active member per hit week = <b>${fmtUSD(wb.teamTotal)}</b> total</div>
+          <div style="font-family:var(--font-body); font-size:11px; color:var(--gs-dark-green);"><b>${wb.metWeeks}</b> week(s) hit \u00b7 $15/active member ($16 if Top Target) = <b>${fmtUSD(wb.teamTotal)}</b> total</div>
         </div>
 
         <div class="section">
