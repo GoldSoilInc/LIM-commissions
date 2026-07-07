@@ -916,6 +916,9 @@ function renderLoading() {
       <div style="padding:8px 28px 28px; font-family:var(--font-body); color:#2a2a2a; font-size:13px; line-height:1.6;">
 
         <!-- 1. Reward Bands -->
+        <h3 style="font-family:var(--font-display); color:var(--gs-dark-green); font-size:15px; letter-spacing:0.5px; margin:18px 0 6px; border-bottom:2px solid var(--gs-gold); padding-bottom:5px;">Pre-Qualified Lead</h3>
+        <p style="margin:6px 0;">A <b>pre-qualified lead</b> is a lead sent to the <b>Comps team</b> by the LAMs for analysis. On this dashboard a warm transfer counts as pre-qualified when its <b>Date Pre-Qualified</b> column (col L of the Warm Transfers report) holds a <b>real date</b> &mdash; a blank or a placeholder dash (&ldquo;-&rdquo;) does <b>not</b> count. Pre-qualified leads are what earn commission.</p>
+
         <h3 style="font-family:var(--font-display); color:var(--gs-dark-green); font-size:15px; letter-spacing:0.5px; margin:22px 0 6px; border-bottom:2px solid var(--gs-gold); padding-bottom:5px;">1 &middot; Reward Bands</h3>
         <p style="margin:6px 0;">Every pre-qualified lead pays out a dollar reward. The size of that reward is set by the <b>phone sourcer&rsquo;s ratio</b> for the period:</p>
         <p style="margin:6px 0; background:#fff; border-left:3px solid var(--gs-gold); padding:8px 12px; font-family:var(--font-display);">Ratio = that person&rsquo;s campaign members &divide; their pre-qualified leads (as phone sourcer)</p>
@@ -937,7 +940,7 @@ function renderLoading() {
           </tbody>
         </table>
         <p style="margin:6px 0;"><b>A ratio above 800 forfeits everything</b> for that person &mdash; including any text credits they would have earned on other people&rsquo;s leads. The forfeited money is not shifted to anyone else.</p>
-        <p style="margin:6px 0; color:#555;"><i>A lead counts as &ldquo;pre-qualified&rdquo; when its <b>Date Pre-Qualified</b> cell (column L of the Warm Transfers report) has any value &mdash; regardless of its Lead Status.</i></p>
+        <p style="margin:6px 0; color:#555;"><i>A lead counts as &ldquo;pre-qualified&rdquo; when its <b>Date Pre-Qualified</b> cell (column L) holds a <b>real date</b> &mdash; regardless of Lead Status (a nurture lead can still be pre-qualified). A blank or a placeholder dash (&ldquo;-&rdquo;) does not count.</i></p>
 
         <!-- 2. Pre-Qualify $ -->
         <h3 style="font-family:var(--font-display); color:var(--gs-dark-green); font-size:15px; letter-spacing:0.5px; margin:22px 0 6px; border-bottom:2px solid var(--gs-gold); padding-bottom:5px;">2 &middot; Pre-Qualify $</h3>
@@ -948,6 +951,13 @@ function renderLoading() {
         </ul>
         <p style="margin:6px 0;">Both shares are read from the <b>phone sourcer&rsquo;s band</b> &mdash; the caller&rsquo;s ratio sets the price of the lead. If the same person both texted and called a lead, they earn the full band amount. If the phone sourcer&rsquo;s ratio is above 800, the whole lead pays <b>$0</b> and the texter&rsquo;s credit is forfeited too.</p>
         <p style="margin:6px 0; background:#fff; border-left:3px solid var(--gs-gold); padding:8px 12px; font-family:var(--font-display);">A person&rsquo;s Pre-Qualify $ = the sum of all their text shares + phone shares across the period.</p>
+        <p style="margin:10px 0 4px;"><b>Reading the lead breakdown:</b></p>
+        <ul style="margin:4px 0 6px 18px; padding:0;">
+          <li style="margin:3px 0;"><b>&#127942; Trophy</b> &mdash; a trophy beside a lead&rsquo;s name marks it <b>pre-qualified</b> (its Date Pre-Qualified cell has a value). A lead with no trophy is a still-nurturing warm transfer and earns $0.</li>
+          <li style="margin:3px 0;"><b>CALL</b> (call credit) &mdash; you were the <b>phone</b> sourcer on a pre-qualified lead that <b>someone else texted</b>; you earn the <b>phone share</b> of that lead&rsquo;s band.</li>
+          <li style="margin:3px 0;"><b>TEXT CREDIT</b> (text credit) &mdash; you were the <b>text</b> sourcer on a pre-qualified lead that <b>someone else called</b>; you earn the <b>text share</b>.</li>
+          <li style="margin:3px 0;">A pre-qualified lead you <b>both texted and called</b> shows with no label and earns the full band amount.</li>
+        </ul>
 
         <!-- 3. Targets -->
         <h3 style="font-family:var(--font-display); color:var(--gs-dark-green); font-size:15px; letter-spacing:0.5px; margin:22px 0 6px; border-bottom:2px solid var(--gs-gold); padding-bottom:5px;">3 &middot; Targets</h3>
@@ -1025,6 +1035,8 @@ function renderLoading() {
         <p style="margin:6px 0; background:#fff; border-left:3px solid var(--gs-gold); padding:8px 12px; font-family:var(--font-display);">Juan&rsquo;s Payout = Own Earnings + Team Override.</p>
         <p style="margin:6px 0;">The payout only <b>unlocks when the team hits quota</b>: <b>every</b> week in the selected period must clear its Weekly Bonus Target (members &divide; 700). Until every week clears, the payout stays locked and the panel shows what it &ldquo;would be&rdquo; once the team hits quota.</p>
 
+        <h3 style="font-family:var(--font-display); color:var(--gs-dark-green); font-size:15px; letter-spacing:0.5px; margin:22px 0 6px; border-bottom:2px solid var(--gs-gold); padding-bottom:5px;">Week &amp; Month Boundaries</h3>
+        <p style="margin:6px 0;">Weeks run <b>Monday&ndash;Sunday</b>, and each week counts toward the month that its <b>Monday</b> falls in. So when the end of one month and the start of the next land in the <b>same week</b>, that whole week is counted in the month of its Monday: a week that starts on the last Monday of the previous month is that <b>month&rsquo;s final week</b>, even though it includes the first days of the new month. (This affects the weekly bonus weeks and the Star-of-the-Month window.)</p>
         <div style="text-align:center; margin-top:24px;">
           <button type="button" onclick="document.getElementById('defs-modal').style.display='none'"
                   style="font-family:var(--font-display); font-weight:bold; font-size:12px; letter-spacing:1px; text-transform:uppercase; color:var(--gs-cream); background:var(--gs-dark-green); border:none; border-radius:16px; padding:9px 26px; cursor:pointer;">Close</button>
@@ -1178,7 +1190,7 @@ function renderLoading() {
         const nm = [r[WT_NAME]].map(v => String(v || '').trim()).filter(v => v && !/^[-\u2013\u2014.\s]+$/.test(v)).join(' ') || '(unnamed lead)';
         // "Pre-qualified" = the Date Pre-Qualified cell (col L) has any value. Warm Transfers is the single source of truth.
         const pqDate = String(r[WT_PQDATE] || '').trim();
-        const isPQ = pqDate !== '';
+        const isPQ = pqDate !== '' && !/^[-\u2013\u2014.\s]+$/.test(pqDate);   // a placeholder dash ("-") means NOT pre-qualified
         transfers.push({ name: nm, status: String(r[WT_STATUS] || '').trim(), url: String(r[WT_URL] || '').trim(), term: String(r[WT_TERM] || '').trim(), nurture: String(r[WT_NURTURE] || '').trim(), notes: String(r[WT_NOTES] || '').trim(), tx, ph, pqDate, isPQ });
         warmTransfers += 1; dayset.add(dt);
         if (isPQ) {
