@@ -931,7 +931,7 @@ function renderLoading() {
     // Text sourcer always gets textShare; the phone sourcer gets the remainder (total - textShare).
     // If one person both texted and called the lead, they receive the whole total.
     const BANDS = [
-      { max: 600,      total: 5.0, textShare: 1.0, label: '<600' },
+      { max: 600,      total: 4.0, textShare: 1.0, label: '<600' },
       { max: 700,      total: 3.0, textShare: 1.0, label: '600\u2013700' },
       { max: 800,      total: 1.5, textShare: 0.5, label: '700\u2013800' },
       { max: Infinity, total: 0,   textShare: 0,   label: '>800' }
@@ -1204,20 +1204,20 @@ function renderLoading() {
       const escapeAttr = (s) => String(s).replace(/"/g, '&quot;');
       const jTag = (bg, fg, bd, txt) => `<span style="display:inline-block;padding:0 6px;border-radius:8px;background:${bg};color:${fg};${bd ? 'border:1px solid ' + bd + ';' : ''}font-size:8px;font-weight:bold;vertical-align:1px;">${txt}</span>`;
       const jDetail = [];
+      // CALL: Juan phone-sourced a pre-qualified lead someone else texted.
       a.transfers.filter(T => T.ph === MANAGER).forEach(T => {
-        const isPQ = !!pqSet[leadKey(T)];
-        let earned = 0, tag;
-        if (!isPQ) tag = jTag('var(--gs-cream)', 'var(--gs-faint)', 'var(--gs-border-soft)', 'PENDING');
-        else if (T.tx === MANAGER) { earned = jBand.total; tag = jTag('var(--gs-dark-green)', 'var(--gs-gold)', '', 'SELF'); }
-        else { earned = jBand.phoneShare; tag = jTag('var(--gs-gold)', 'var(--gs-dark-green)', '', 'CALL'); }
-        jDetail.push({ name: T.name, url: T.url, status: T.status, term: T.term, nurture: T.nurture, notes: T.notes, earned, tag, note: (isPQ && T.tx !== MANAGER) ? 'texted by ' + T.tx : '' });
+        if (T.tx === MANAGER) return;             // skip SELF
+        if (!pqSet[leadKey(T)]) return;           // skip not-yet-pre-qualified
+        jDetail.push({ name: T.name, url: T.url, status: T.status, term: T.term, nurture: T.nurture, notes: T.notes, earned: jBand.phoneShare, tag: jTag('var(--gs-gold)', 'var(--gs-dark-green)', '', 'CALL'), note: 'texted by ' + T.tx });
       });
+      // TEXT CREDIT: Juan texted a pre-qualified lead someone else phone-sourced.
       a.leads.forEach(L => {
         if (L.tx !== MANAGER || L.ph === MANAGER) return;
         const T = txIndex[leadKey(L)] || {};
         const earned = jForfeit ? 0 : (bandOf[L.ph] || bandFor(0, 0)).textShare;
         jDetail.push({ name: L.name, url: T.url || '', status: T.status || '', term: T.term || '', nurture: T.nurture || '', notes: T.notes || '', earned, tag: jTag('var(--gs-cream)', 'var(--gs-dark-green)', 'var(--gs-gold)', 'TEXT CREDIT'), note: 'called by ' + L.ph });
       });
+      const jShownEarned = jDetail.reduce((s, d) => s + d.earned, 0);
 
       return wrapCard(`
         ${renderHeader('Manager Pay', 'Juan \u00b7 confidential')}
@@ -1249,7 +1249,6 @@ function renderLoading() {
               ${!teamHitQuota ? `<div style="font-family:var(--font-body); font-size:9px; color:var(--gs-cream); opacity:0.7; margin-top:3px;">would be ${fmtUSD(mgrEarned)} once the team hits quota</div>` : ''}
             </div>
           </div>
-          <div style="font-family:var(--font-body); font-size:10px; color:var(--gs-faint); margin-top:8px;">Own Earnings = Juan\'s own pre-qualify pay (+ $50 star if he is the month\'s top pre-qualifier). Juan is excluded from the $15 weekly team bonus. Override = 15% of the other reps\' pre-qualify pay. Everything unlocks only when the team hits its weekly quota every week in view (${teamHitQuota ? 'met' : 'not met'} this period).</div>
         </div>
 
         <div style="margin:6px 24px 0; font-family:var(--font-display); font-size:11px; letter-spacing:1.5px; color:var(--gs-gold); font-weight:bold;">JUAN\'S CAMPAIGNS \u00b7 THIS PERIOD</div>
@@ -1288,7 +1287,7 @@ function renderLoading() {
         </div>
 
         <div class="section">
-          <h2>LEAD BREAKDOWN \u00b7 ${jDetail.length} \u00b7 earned ${fmtUSD(mgrOwn)}</h2>
+          <h2>LEAD BREAKDOWN \u00b7 CALL &amp; TEXT CREDIT \u00b7 ${jDetail.length} \u00b7 ${fmtUSD(jShownEarned)}</h2>
           ${jDetail.length > 0 ? `
           <table style="width:100%;border-collapse:collapse;font-size:12px;">
             <thead><tr><th style="text-align:left;">LEAD</th><th style="text-align:left;">LEAD STATUS</th><th style="text-align:left;">REASON FOR TERMINATION</th><th style="text-align:left;">REASON FOR NURTURE</th><th style="text-align:left;">CLOSER'S NOTES</th><th class="num">EARNED</th></tr></thead>
