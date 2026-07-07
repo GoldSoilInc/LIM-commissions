@@ -1349,6 +1349,16 @@ function renderLoading() {
         </div>`;
       };
 
+      // Big box (matches the GOALS \u00b7 PRE-QUALIFIED boxes): pre-qualified / goal, green when the gate is met.
+      const wkBox = (label, prequal, goal, formula) => {
+        const hit = goal > 0 && prequal >= goal;
+        return `<div style="background:${hit ? 'var(--gs-dark-green)' : 'var(--gs-cream)'}; border:1px solid ${hit ? 'var(--gs-dark-green)' : 'var(--gs-border-soft)'}; border-radius:8px; padding:12px 16px;">
+          <div style="font-family:var(--font-display); font-size:10px; letter-spacing:1.5px; font-weight:bold; color:var(--gs-gold);">${label}</div>
+          <div style="font-family:var(--font-display); font-size:30px; font-weight:bold; line-height:1.1; color:${hit ? 'var(--gs-cream)' : 'var(--gs-dark-green)'};">${prequal} / ${goal}</div>
+          <div style="font-family:var(--font-body); font-size:9px; color:${hit ? 'var(--gs-cream)' : 'var(--gs-faint)'};">${formula}${hit ? ' \u00b7 \u2713 hit' : ''}</div>
+        </div>`;
+      };
+
       // Juan's lead breakdown (his warm transfers + text credits) with the amount he earned per lead.
       const normName = (s) => String(s || '').trim().toUpperCase().replace(/\s+/g, ' ');
       const jForfeit = jBand.total === 0;
@@ -1428,11 +1438,17 @@ function renderLoading() {
 
         <div class="section">
           <h2>WEEKLY GOAL</h2>
-          <div style="font-family:var(--font-body); font-size:10px; color:var(--gs-faint); margin:-4px 0 8px;">Each week: <b style="color:var(--gs-gold);">TEAM</b> = bonus gate (team pre-qualified vs members \u00f7 700) \u00b7 <b style="color:var(--gs-gold);">JUAN</b> = his personal target (his pre-qualified vs his members \u00f7 700).</div>
+          <div style="font-family:var(--font-body); font-size:10px; color:var(--gs-faint); margin:-4px 0 8px;">Each side is pre-qualified vs members \u00f7 700 (the Optimal / bonus gate).</div>
+          <div style="display:grid; grid-template-columns:repeat(2,1fr); gap:12px;">
+            ${wkBox('TEAM \u00b7 BONUS GATE', a.prequal, a.goalOptimal, 'team members \u00f7 700')}
+            ${wkBox('JUAN \u00b7 PERSONAL', jPrequal, Math.floor(jMembers / GOAL_OPTIMAL), 'his members \u00f7 700')}
+          </div>
+          ${wb.weeks.length > 1 ? `
+          <div style="font-family:var(--font-display); font-size:9px; letter-spacing:1px; color:var(--gs-gold); font-weight:bold; margin:14px 0 4px;">BY WEEK</div>
           <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:8px;">
             ${wb.weeks.map((w, i) => comboChip(w, jWeeks[i] || { prequal: 0, goal: 0, met: false })).join('')}
-          </div>
-          <div style="font-family:var(--font-body); font-size:10px; color:var(--gs-faint); margin-top:6px;">TEAM is the same Optimal gate from the team dashboard (drives the $15 / $16 bonus). JUAN is his personal target only \u2014 he is on manager pay, not the team bonus.</div>
+          </div>` : ''}
+          <div style="font-family:var(--font-body); font-size:10px; color:var(--gs-faint); margin-top:8px;">TEAM is the same Optimal gate from the team dashboard (drives the $15 / $16 bonus). JUAN is his personal target only \u2014 he is on manager pay, not the team bonus.</div>
         </div>
 
         <div class="section">
