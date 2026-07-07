@@ -954,7 +954,7 @@ function renderLoading() {
     const CM_SHIFT = 1, WT_SHIFT = 1, PQ_SHIFT = 0;
     // Column indexes (0-based). Adjust only if a tab's layout changes.
     const CM_DATE = 0, CM_OWNER = 1, CM_MEMBERS = 3;         // Campaign Members: A Start Date | B Owner | D Actual Campaign Members
-    const WT_DATE = 0, WT_TEXT = 1, WT_PHONE = 2, WT_NAME = 3, WT_STATUS = 6, WT_URL = 7;   // + G Lead Status | H Lead URL
+    const WT_DATE = 0, WT_TEXT = 1, WT_PHONE = 2, WT_NAME = 3, WT_STATUS = 6, WT_URL = 7, WT_TERM = 8, WT_NURTURE = 9, WT_NOTES = 10;   // G Lead Status | H Lead URL | I Reason for terminating | J Reason for Nurture | K Closer's Notes
     const PQ_DATE = 0, PQ_FIRST = 2, PQ_TEXT = 3, PQ_PHONE = 4, PQ_LAST = 5;  // PreQualified: A Date | C First | D Sourcer(Text) | E Sourcer(Phone) | F Last
 
     let CAMPAIGN_ROWS = [], TRANSFER_ROWS = [], PREQUAL_ROWS = [];
@@ -1038,7 +1038,7 @@ function renderLoading() {
         if (tx) ensure(tx).warmT += 1;
         if (ph) ensure(ph).warmTPhone += 1;
         const nm = [r[WT_NAME]].map(v => String(v || '').trim()).filter(v => v && !/^[-\u2013\u2014.\s]+$/.test(v)).join(' ') || '(unnamed lead)';
-        transfers.push({ name: nm, status: String(r[WT_STATUS] || '').trim(), url: String(r[WT_URL] || '').trim(), tx, ph });
+        transfers.push({ name: nm, status: String(r[WT_STATUS] || '').trim(), url: String(r[WT_URL] || '').trim(), term: String(r[WT_TERM] || '').trim(), nurture: String(r[WT_NURTURE] || '').trim(), notes: String(r[WT_NOTES] || '').trim(), tx, ph });
         warmTransfers += 1; dayset.add(dt);
       }
       for (const r of PREQUAL_ROWS) {
@@ -1056,7 +1056,7 @@ function renderLoading() {
       }
       return {
         members, warmTransfers, prequal, days: dayset.size, people, leads, transfers,
-        goalTop: Math.round(members / GOAL_TOP), goalOptimal: Math.round(members / GOAL_OPTIMAL), goalMin: Math.round(members / GOAL_MIN)
+        goalTop: Math.floor(members / GOAL_TOP), goalOptimal: Math.floor(members / GOAL_OPTIMAL), goalMin: Math.floor(members / GOAL_MIN)
       };
     }
 
@@ -1091,7 +1091,7 @@ function renderLoading() {
         const segFrom = new Date(Math.max(ws.getTime(), from.getTime()));
         const segTo = new Date(Math.min(we.getTime(), to.getTime()));
         const a = aggregate(segFrom, segTo);
-        const goal = Math.round(a.members / GOAL_OPTIMAL);   // bonus gate = Optimal (members / 700)
+        const goal = Math.floor(a.members / GOAL_OPTIMAL);   // bonus gate = Optimal (members / 700)
         const met = a.prequal >= goal && goal > 0;           // gate metric = pre-qualified
         // Active (present) = any activity that week. Out-the-whole-week => not eligible for the $15.
         const active = {};
@@ -1208,14 +1208,14 @@ function renderLoading() {
           if (!isPQ) { tag = tagPill('var(--gs-cream)', 'var(--gs-faint)', 'var(--gs-border-soft)', 'PENDING'); }
           else if (T.tx === n) { earned = band.total; tag = tagPill('var(--gs-dark-green)', 'var(--gs-gold)', '', 'SELF'); }
           else { earned = band.phoneShare; tag = tagPill('var(--gs-gold)', 'var(--gs-dark-green)', '', 'CALL'); }
-          detail.push({ name: T.name, url: T.url, status: T.status, earned, tag, note: (isPQ && T.tx !== n) ? 'texted by ' + T.tx : '' });
+          detail.push({ name: T.name, url: T.url, status: T.status, term: T.term, nurture: T.nurture, notes: T.notes, earned, tag, note: (isPQ && T.tx !== n) ? 'texted by ' + T.tx : '' });
         });
         // Text credits: leads this person texted that someone else phone-sourced (pre-qualified).
         a.leads.forEach(L => {
           if (L.tx !== n || L.ph === n) return;
           const T = txIndex[leadKey(L)] || {};
           const earned = forfeited ? 0 : (bandOf[L.ph] || bandFor(0, 0)).textShare;
-          detail.push({ name: L.name, url: T.url || '', status: T.status || '', earned, tag: tagPill('var(--gs-cream)', 'var(--gs-dark-green)', 'var(--gs-gold)', 'TEXT CREDIT'), note: 'called by ' + L.ph });
+          detail.push({ name: L.name, url: T.url || '', status: T.status || '', term: T.term || '', nurture: T.nurture || '', notes: T.notes || '', earned, tag: tagPill('var(--gs-cream)', 'var(--gs-dark-green)', 'var(--gs-gold)', 'TEXT CREDIT'), note: 'called by ' + L.ph });
         });
 
         const detailId = 'lead_' + idx;
@@ -1237,6 +1237,14 @@ function renderLoading() {
           <td colspan="${STAR_ENABLED ? 9 : 8}" style="padding:6px 24px 12px 34px;">
             <div style="font-family:var(--font-display); font-size:9px; letter-spacing:1px; color:var(--gs-gold); font-weight:bold; padding-bottom:4px;">WARM TRANSFERS \u00b7 ${detail.length} \u00b7 earned ${fmtUSD(base)}</div>
             <table style="width:100%;border-collapse:collapse;font-size:11px;">
+              <thead><tr>
+                <th style="text-align:left;padding:2px 8px;font-size:8.5px;color:var(--gs-gold);">LEAD</th>
+                <th style="text-align:left;padding:2px 8px;font-size:8.5px;color:var(--gs-gold);">LEAD STATUS</th>
+                <th style="text-align:left;padding:2px 8px;font-size:8.5px;color:var(--gs-gold);">REASON FOR TERMINATION</th>
+                <th style="text-align:left;padding:2px 8px;font-size:8.5px;color:var(--gs-gold);">REASON FOR NURTURE</th>
+                <th style="text-align:left;padding:2px 8px;font-size:8.5px;color:var(--gs-gold);">CLOSER'S NOTES</th>
+                <th style="text-align:right;padding:2px 8px;font-size:8.5px;color:var(--gs-gold);">EARNED</th>
+              </tr></thead>
               ${detail.map(d => {
                 const isLink = /^https?:\/\//i.test(d.url);
                 const nameCell = isLink
@@ -1245,6 +1253,9 @@ function renderLoading() {
                 return `<tr>
                   <td style="padding:4px 8px;border-bottom:1px solid #EFEADD;">${nameCell} ${d.tag}${d.note ? ' <span style="color:var(--gs-faint);font-size:9px;">' + d.note + '</span>' : ''}</td>
                   <td style="padding:4px 8px;color:var(--gs-faint);font-size:10px;border-bottom:1px solid #EFEADD;">${d.status || ''}</td>
+                  <td style="padding:4px 8px;color:var(--gs-faint);font-size:10px;border-bottom:1px solid #EFEADD;">${d.term || ''}</td>
+                  <td style="padding:4px 8px;color:var(--gs-faint);font-size:10px;border-bottom:1px solid #EFEADD;">${d.nurture || ''}</td>
+                  <td style="padding:4px 8px;color:var(--gs-faint);font-size:10px;border-bottom:1px solid #EFEADD;">${d.notes || ''}</td>
                   <td class="num" style="padding:4px 8px;text-align:right;border-bottom:1px solid #EFEADD;">${fmtUSD(d.earned)}</td>
                 </tr>`;
               }).join('')}
