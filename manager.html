@@ -1205,21 +1205,27 @@ function renderLoading() {
       const escapeAttr = (s) => String(s).replace(/"/g, '&quot;');
       const jTag = (bg, fg, bd, txt) => `<span style="display:inline-block;padding:0 6px;border-radius:8px;background:${bg};color:${fg};${bd ? 'border:1px solid ' + bd + ';' : ''}font-size:8px;font-weight:bold;vertical-align:1px;">${txt}</span>`;
       const jDetail = [];
-      // All warm transfers Juan phone-sourced. Only CALL gets a tag; SELF and not-yet-pre-qualified stay unlabeled.
-      a.transfers.filter(T => T.ph === MANAGER).forEach(T => {
-        const isPQ = !!pqSet[leadKey(T)];
-        if (isPQ && T.tx !== MANAGER) {
-          jDetail.push({ name: T.name, url: T.url, status: T.status, term: T.term, nurture: T.nurture, notes: T.notes, earned: jBand.phoneShare, tag: jTag('var(--gs-gold)', 'var(--gs-dark-green)', '', 'CALL'), note: 'texted by ' + T.tx });
+      // 1. Pre-qualified leads Juan PHONE-sourced (driven by PreQualified). SELF unlabeled; CALL labeled.
+      a.leads.forEach(L => {
+        if (L.ph !== MANAGER) return;
+        const T = txIndex[leadKey(L)] || {};
+        if (L.tx === MANAGER) {
+          jDetail.push({ name: L.name, url: T.url || '', status: T.status || '', term: T.term || '', nurture: T.nurture || '', notes: T.notes || '', earned: jBand.total, tag: '', note: '' });
         } else {
-          jDetail.push({ name: T.name, url: T.url, status: T.status, term: T.term, nurture: T.nurture, notes: T.notes, earned: isPQ ? jBand.total : 0, tag: '', note: '' });
+          jDetail.push({ name: L.name, url: T.url || '', status: T.status || '', term: T.term || '', nurture: T.nurture || '', notes: T.notes || '', earned: jBand.phoneShare, tag: jTag('var(--gs-gold)', 'var(--gs-dark-green)', '', 'CALL'), note: 'texted by ' + L.tx });
         }
       });
-      // TEXT CREDIT: Juan texted a pre-qualified lead someone else phone-sourced.
+      // 2. TEXT CREDIT: pre-qualified leads Juan texted that someone else phone-sourced.
       a.leads.forEach(L => {
         if (L.tx !== MANAGER || L.ph === MANAGER) return;
         const T = txIndex[leadKey(L)] || {};
         const earned = jForfeit ? 0 : (bandOf[L.ph] || bandFor(0, 0)).textShare;
         jDetail.push({ name: L.name, url: T.url || '', status: T.status || '', term: T.term || '', nurture: T.nurture || '', notes: T.notes || '', earned, tag: jTag('var(--gs-cream)', 'var(--gs-dark-green)', 'var(--gs-gold)', 'TEXT CREDIT'), note: 'called by ' + L.ph });
+      });
+      // 3. Juan's warm transfers not yet pre-qualified (nurture) -> $0, unlabeled.
+      a.transfers.filter(T => T.ph === MANAGER).forEach(T => {
+        if (pqSet[leadKey(T)]) return;
+        jDetail.push({ name: T.name, url: T.url, status: T.status, term: T.term, nurture: T.nurture, notes: T.notes, earned: 0, tag: '', note: '' });
       });
       const jShownEarned = jDetail.reduce((s, d) => s + d.earned, 0);
 
