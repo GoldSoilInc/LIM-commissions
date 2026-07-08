@@ -1422,6 +1422,29 @@ function renderLoading() {
         jPq.push({ ...T, earned, tag: jTag('var(--gs-cream)', 'var(--gs-dark-green)', 'var(--gs-gold)', 'TEXT CREDIT'), note: 'called by ' + T.ph });
       });
       const jPqEarned = jPq.reduce((s, d) => s + d.earned, 0);
+      const jArrow = (rowId) => ` <span id="c_${rowId}" class="lead-arw" onclick="toggleOne('${rowId}')" style="cursor:pointer;color:var(--gs-gold);font-weight:bold;user-select:none;" title="Show list">\u25BE</span>`;
+      const jStarTag = mgrStar ? ` <span style="display:inline-block;padding:1px 7px;border-radius:9px;background:var(--gs-dark-green);color:var(--gs-gold);font-family:var(--font-body);font-size:9px;font-weight:bold;letter-spacing:0.5px;vertical-align:1px;">\u2605 STAR +$${mgrStar}</span>` : '';
+      const jWtTable = jWt.length ? `<table style="width:100%;border-collapse:collapse;font-size:12px;">
+        <thead><tr><th style="text-align:left;">LEAD</th><th style="text-align:left;">LEAD STATUS</th><th style="text-align:left;">REASON FOR TERMINATION</th><th style="text-align:left;">REASON FOR NURTURE</th><th style="text-align:left;">CLOSER'S NOTES</th></tr></thead>
+        <tbody>${jWt.map(d => `<tr>
+          <td style="padding:5px 8px;border-bottom:1px solid #EFEADD;">${d.isPQ ? '<span title="Pre-qualified">\uD83C\uDFC6</span> ' : ''}${jNameCell(d)}</td>
+          <td style="padding:5px 8px;color:var(--gs-faint);font-size:11px;border-bottom:1px solid #EFEADD;">${d.status || ''}</td>
+          <td style="padding:5px 8px;color:var(--gs-faint);font-size:11px;border-bottom:1px solid #EFEADD;">${d.term || ''}</td>
+          <td style="padding:5px 8px;color:var(--gs-faint);font-size:11px;border-bottom:1px solid #EFEADD;">${d.nurture || ''}</td>
+          <td style="padding:5px 8px;color:var(--gs-faint);font-size:11px;border-bottom:1px solid #EFEADD;">${d.notes || ''}</td>
+        </tr>`).join('')}</tbody>
+      </table>` : `<div class="empty-state">No warm transfers for Juan in this period.</div>`;
+      const jPqTable = jPq.length ? `<table style="width:100%;border-collapse:collapse;font-size:12px;">
+        <thead><tr><th style="text-align:left;">LEAD</th><th style="text-align:left;">LEAD STATUS</th><th style="text-align:left;">REASON FOR TERMINATION</th><th style="text-align:left;">REASON FOR NURTURE</th><th style="text-align:left;">CLOSER'S NOTES</th><th class="num">EARNED</th></tr></thead>
+        <tbody>${jPq.map(d => `<tr>
+          <td style="padding:5px 8px;border-bottom:1px solid #EFEADD;">${jNameCell(d)} ${d.tag}${d.note ? ' <span style="color:var(--gs-faint);font-size:9px;">' + d.note + '</span>' : ''}</td>
+          <td style="padding:5px 8px;color:var(--gs-faint);font-size:11px;border-bottom:1px solid #EFEADD;">${d.status || ''}</td>
+          <td style="padding:5px 8px;color:var(--gs-faint);font-size:11px;border-bottom:1px solid #EFEADD;">${d.term || ''}</td>
+          <td style="padding:5px 8px;color:var(--gs-faint);font-size:11px;border-bottom:1px solid #EFEADD;">${d.nurture || ''}</td>
+          <td style="padding:5px 8px;color:var(--gs-faint);font-size:11px;border-bottom:1px solid #EFEADD;">${d.notes || ''}</td>
+          <td class="num" style="padding:5px 8px;text-align:right;border-bottom:1px solid #EFEADD;">${fmtUSD(d.earned)}</td>
+        </tr>`).join('')}</tbody>
+      </table>` : `<div class="empty-state">No pre-qualified leads for Juan in this period.</div>`;
 
       return wrapCard(`
         ${renderHeader('Manager Pay', 'Juan \u00b7 confidential')}
@@ -1493,33 +1516,46 @@ function renderLoading() {
         </div>
 
         <div class="section">
-          <h2>LEAD BREAKDOWN</h2>
-          <div style="margin-bottom:4px;"><span onclick="toggleOne('jwt')" style="cursor:pointer; display:inline-flex; align-items:center; gap:6px; font-family:var(--font-display); font-size:10px; letter-spacing:0.5px; color:var(--gs-dark-green); font-weight:bold; background:var(--gs-cream); border:1px solid var(--gs-gold); border-radius:14px; padding:5px 12px; margin:0 8px 8px 0;"><span id="arw_jwt" class="lead-arw">\u25BE</span> WARM TRANSFERS \u00b7 ${jWt.length}</span><span onclick="toggleOne('jpq')" style="cursor:pointer; display:inline-flex; align-items:center; gap:6px; font-family:var(--font-display); font-size:10px; letter-spacing:0.5px; color:var(--gs-dark-green); font-weight:bold; background:var(--gs-cream); border:1px solid var(--gs-gold); border-radius:14px; padding:5px 12px; margin:0 8px 8px 0;"><span id="arw_jpq" class="lead-arw">\u25BE</span> PRE-QUALIFIED \u00b7 ${jPq.length} \u00b7 earned ${fmtUSD(jPqEarned)}</span></div>
-          <div id="jwt" class="lead-box" style="display:none;">
-            ${jWt.length ? `<table style="width:100%;border-collapse:collapse;font-size:12px;">
-              <thead><tr><th style="text-align:left;">LEAD</th><th style="text-align:left;">LEAD STATUS</th><th style="text-align:left;">REASON FOR TERMINATION</th><th style="text-align:left;">REASON FOR NURTURE</th><th style="text-align:left;">CLOSER'S NOTES</th></tr></thead>
-              <tbody>${jWt.map(d => `<tr>
-                <td style="padding:5px 8px;border-bottom:1px solid #EFEADD;">${d.isPQ ? '<span title="Pre-qualified">\uD83C\uDFC6</span> ' : ''}${jNameCell(d)}</td>
-                <td style="padding:5px 8px;color:var(--gs-faint);font-size:11px;border-bottom:1px solid #EFEADD;">${d.status || ''}</td>
-                <td style="padding:5px 8px;color:var(--gs-faint);font-size:11px;border-bottom:1px solid #EFEADD;">${d.term || ''}</td>
-                <td style="padding:5px 8px;color:var(--gs-faint);font-size:11px;border-bottom:1px solid #EFEADD;">${d.nurture || ''}</td>
-                <td style="padding:5px 8px;color:var(--gs-faint);font-size:11px;border-bottom:1px solid #EFEADD;">${d.notes || ''}</td>
-              </tr>`).join('')}</tbody>
-            </table>` : `<div class="empty-state">No warm transfers for Juan in this period.</div>`}
-          </div>
-          <div id="jpq" class="lead-box" style="display:none;">
-            ${jPq.length ? `<table style="width:100%;border-collapse:collapse;font-size:12px;">
-              <thead><tr><th style="text-align:left;">LEAD</th><th style="text-align:left;">LEAD STATUS</th><th style="text-align:left;">REASON FOR TERMINATION</th><th style="text-align:left;">REASON FOR NURTURE</th><th style="text-align:left;">CLOSER'S NOTES</th><th class="num">EARNED</th></tr></thead>
-              <tbody>${jPq.map(d => `<tr>
-                <td style="padding:5px 8px;border-bottom:1px solid #EFEADD;">${jNameCell(d)} ${d.tag}${d.note ? ' <span style="color:var(--gs-faint);font-size:9px;">' + d.note + '</span>' : ''}</td>
-                <td style="padding:5px 8px;color:var(--gs-faint);font-size:11px;border-bottom:1px solid #EFEADD;">${d.status || ''}</td>
-                <td style="padding:5px 8px;color:var(--gs-faint);font-size:11px;border-bottom:1px solid #EFEADD;">${d.term || ''}</td>
-                <td style="padding:5px 8px;color:var(--gs-faint);font-size:11px;border-bottom:1px solid #EFEADD;">${d.nurture || ''}</td>
-                <td style="padding:5px 8px;color:var(--gs-faint);font-size:11px;border-bottom:1px solid #EFEADD;">${d.notes || ''}</td>
-                <td class="num" style="padding:5px 8px;text-align:right;border-bottom:1px solid #EFEADD;">${fmtUSD(d.earned)}</td>
-              </tr>`).join('')}</tbody>
-            </table>` : `<div class="empty-state">No pre-qualified leads for Juan in this period.</div>`}
-          </div>
+          <h2>BY SOURCER</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>SOURCER</th>
+                <th class="num">MEMBERS</th>
+                <th class="num">WARM TRANSFERS</th>
+                <th class="num">PRE-QUALIFIED</th>
+                <th class="num">RATIO</th>
+                <th class="num">PRE-QUALIFY $</th>
+                <th class="num">WEEKLY BONUS $</th>${STAR_ENABLED ? '<th class="num">STAR $</th>' : ''}<th class="num">TOTAL $</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style="background:#FFFFFF;border-bottom:1px solid #EFEADD;">
+                <td class="label">${MANAGER}${jStarTag}</td>
+                <td class="num">${jMembers.toLocaleString('en-US')}</td>
+                <td class="num">${jWt.length}${jWt.length ? jArrow('wtrow_j') : ''}</td>
+                <td class="num highlight">${jPrequal}${jPq.length ? jArrow('pqrow_j') : ''}</td>
+                <td class="num">${jBand.ratio === null ? '\u2014' : Math.round(jBand.ratio).toLocaleString('en-US')}</td>
+                <td class="num">${fmtUSD(mgrOwn)}</td>
+                <td class="num">${fmtUSD(0)}</td>
+                ${STAR_ENABLED ? `<td class="num">${fmtUSD(mgrStar)}</td>` : ''}
+                <td class="num gold">${fmtUSD(ownEarnings)}</td>
+              </tr>
+              <tr id="wtrow_j" class="lead-box" style="display:none;background:#FBF7EC;">
+                <td colspan="${STAR_ENABLED ? 9 : 8}" style="padding:8px 24px 12px 34px;">
+                  <div style="font-family:var(--font-display);font-size:9px;letter-spacing:1px;color:var(--gs-gold);font-weight:bold;padding-bottom:4px;">WARM TRANSFERS \u00b7 ${jWt.length}</div>
+                  ${jWtTable}
+                </td>
+              </tr>
+              <tr id="pqrow_j" class="lead-box" style="display:none;background:#FBF7EC;">
+                <td colspan="${STAR_ENABLED ? 9 : 8}" style="padding:8px 24px 12px 34px;">
+                  <div style="font-family:var(--font-display);font-size:9px;letter-spacing:1px;color:var(--gs-gold);font-weight:bold;padding-bottom:4px;">PRE-QUALIFIED \u00b7 ${jPq.length} \u00b7 earned ${fmtUSD(jPqEarned)}</div>
+                  ${jPqTable}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <div style="font-family:var(--font-body); font-size:10px; color:var(--gs-faint); margin-top:8px;">TOTAL $ here is Juan's own earnings (pre-qualify + star). He is excluded from the weekly team bonus, so WEEKLY BONUS $ is $0. His full manager payout (own earnings + ${overridePct}% override) is shown in the panel at the top.</div>
         </div>
 
         ${renderFooter()}
