@@ -1113,6 +1113,21 @@ function renderLoading() {
       if (c) c.textContent = open ? '\u25B8' : '\u25BE';
     };
 
+    // Toggle a Warm Transfers / Pre-Qualified box. Only one box may be open at a time:
+    // opening one closes every other. Arrow points down (closed) / up (open).
+    window.toggleOne = function (id) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const isOpen = el.style.display !== 'none';
+      document.querySelectorAll('.lead-box').forEach(r => { r.style.display = 'none'; });
+      document.querySelectorAll('.lead-arw').forEach(a => { a.textContent = '\u25BE'; });
+      if (!isOpen) {
+        el.style.display = (el.tagName === 'TR') ? 'table-row' : 'block';
+        const a = document.getElementById('c_' + id) || document.getElementById('arw_' + id);
+        if (a) a.textContent = '\u25B4';
+      }
+    };
+
     // Toggle a sub-list (Warm Transfers / Pre-Qualified) inside an expanded person row.
     window.toggleSub = function (id) {
       const el = document.getElementById(id);
@@ -1363,7 +1378,7 @@ function renderLoading() {
         });
         const pqEarned = pqRows.reduce((s, d) => s + d.earned, 0);
 
-        const arrow = (rowId) => ` <span id="c_${rowId}" onclick="toggleLeads('${rowId}')" style="cursor:pointer;color:var(--gs-gold);font-weight:bold;user-select:none;" title="Show list">\u25B8</span>`;
+        const arrow = (rowId) => ` <span id="c_${rowId}" class="lead-arw" onclick="toggleOne('${rowId}')" style="cursor:pointer;color:var(--gs-gold);font-weight:bold;user-select:none;" title="Show list">\u25BE</span>`;
         const summaryRow = `<tr style="${isStar ? 'background:#EBD88C;' : 'background:#FFFFFF;'}${edge}">
           <td class="label"${isStar ? ' style="font-weight:bold;color:var(--gs-dark-green);"' : ''}>${hasActivity ? n : '\u2014'}${starTag}</td>
           <td class="num">${p.members.toLocaleString('en-US')}</td>
@@ -1395,13 +1410,13 @@ function renderLoading() {
           </tr>`).join('')}
         </table>`;
 
-        const wtDetailRow = wtRows.length ? `<tr id="wtrow_${idx}" style="display:none;background:#FBF7EC;">
+        const wtDetailRow = wtRows.length ? `<tr id="wtrow_${idx}" class="lead-box" style="display:none;background:#FBF7EC;">
           <td colspan="${STAR_ENABLED ? 9 : 8}" style="padding:8px 24px 12px 34px;">
             <div style="font-family:var(--font-display);font-size:9px;letter-spacing:1px;color:var(--gs-gold);font-weight:bold;padding-bottom:4px;">WARM TRANSFERS \u00b7 ${wtRows.length}</div>
             ${wtTable}
           </td>
         </tr>` : '';
-        const pqDetailRow = pqRows.length ? `<tr id="pqrow_${idx}" style="display:none;background:#FBF7EC;">
+        const pqDetailRow = pqRows.length ? `<tr id="pqrow_${idx}" class="lead-box" style="display:none;background:#FBF7EC;">
           <td colspan="${STAR_ENABLED ? 9 : 8}" style="padding:8px 24px 12px 34px;">
             <div style="font-family:var(--font-display);font-size:9px;letter-spacing:1px;color:var(--gs-gold);font-weight:bold;padding-bottom:4px;">PRE-QUALIFIED \u00b7 ${pqRows.length} \u00b7 earned ${fmtUSD(pqEarned)}</div>
             ${pqTable}
