@@ -1138,6 +1138,16 @@ function renderLoading() {
       if (c) c.textContent = open ? '\u25B8' : '\u25BE';
     };
 
+    // Toggle a sub-list (Warm Transfers / Pre-Qualified) inside the breakdown.
+    window.toggleSub = function (id) {
+      const el = document.getElementById(id);
+      const a = document.getElementById('arw_' + id);
+      if (!el) return;
+      const open = el.style.display !== 'none';
+      el.style.display = open ? 'none' : 'block';
+      if (a) a.textContent = open ? '\u25B8' : '\u25BE';
+    };
+
     // A week belongs to the month of its Monday. For the month that owns `refDate`'s week,
     // return the first owned Monday, the last owned Monday, and that last week's end (Sunday).
     function monthOwnedWindow(refDate) {
@@ -1171,7 +1181,8 @@ function renderLoading() {
       let members = 0, warmTransfers = 0, prequal = 0;
       const dayset = new Set();
       const leads = [];      // per pre-qualified lead: { name, tx, ph }  (drives pay)
-      const transfers = [];  // per warm transfer: { name, status, url, tx, ph }  (drives the expand list)
+      const transfers = [];  // warm transfers, bucketed by Created Date (drives the WARM TRANSFERS list)
+      const pquals = [];     // pre-qualified leads, bucketed by Date Pre-Qualified (drives the PRE-QUALIFIED list + pay)
 
       for (const r of CAMPAIGN_ROWS) {
         const o = (r[CM_OWNER] || '').trim(); const dt = normDate(r[CM_DATE], CM_SHIFT);
@@ -1181,25 +1192,32 @@ function renderLoading() {
       }
       for (const r of TRANSFER_ROWS) {
         const tx = (r[WT_TEXT] || '').trim(); const ph = (r[WT_PHONE] || '').trim() || tx;
-        const dt = normDate(r[WT_DATE], WT_SHIFT);
-        if (dt < f || dt > tISO) continue;
-        if (tx) ensure(tx).warmT += 1;
-        if (ph) ensure(ph).warmTPhone += 1;
+        const created = normDate(r[WT_DATE], WT_SHIFT);
         const nm = [r[WT_NAME]].map(v => String(v || '').trim()).filter(v => v && !/^[-\u2013\u2014.\s]+$/.test(v)).join(' ') || '(unnamed lead)';
-        // "Pre-qualified" = the Date Pre-Qualified cell (col L) has any value. Warm Transfers is the single source of truth.
-        const pqDate = String(r[WT_PQDATE] || '').trim();
-        const isPQ = pqDate !== '' && !/^[-\u2013\u2014.\s]+$/.test(pqDate);   // a placeholder dash ("-") means NOT pre-qualified
-        transfers.push({ name: nm, status: String(r[WT_STATUS] || '').trim(), url: String(r[WT_URL] || '').trim(), term: String(r[WT_TERM] || '').trim(), nurture: String(r[WT_NURTURE] || '').trim(), notes: String(r[WT_NOTES] || '').trim(), tx, ph, pqDate, isPQ });
-        warmTransfers += 1; dayset.add(dt);
-        if (isPQ) {
+        const pqRaw = String(r[WT_PQDATE] || '').trim();
+        const isPQ = pqRaw !== '' && !/^[-\u2013\u2014.\s]+$/.test(pqRaw);   // real date in Date Pre-Qualified (col L); "-"/blank = NOT pre-qualified
+        const pqDay = isPQ ? normDate(r[WT_PQDATE], PQ_SHIFT) : '';           // the date it was pre-qualified (col L)
+        const rec = { name: nm, status: String(r[WT_STATUS] || '').trim(), url: String(r[WT_URL] || '').trim(), term: String(r[WT_TERM] || '').trim(), nurture: String(r[WT_NURTURE] || '').trim(), notes: String(r[WT_NOTES] || '').trim(), tx, ph, pqDate: pqRaw, isPQ };
+
+        // WARM TRANSFERS side — bucketed by Created Date (col A).
+        if (created >= f && created <= tISO) {
+          if (tx) ensure(tx).warmT += 1;
+          if (ph) ensure(ph).warmTPhone += 1;
+          warmTransfers += 1; dayset.add(created);
+          transfers.push(rec);
+        }
+        // PRE-QUALIFIED side — bucketed by Date Pre-Qualified (col L), so a lead warm-transferred
+        // earlier but pre-qualified in this period still counts (e.g. inbound calls on older transfers).
+        if (isPQ && pqDay >= f && pqDay <= tISO) {
           if (tx) ensure(tx).pqText += 1;
           ensure(ph).pqPhone += 1;
           leads.push({ name: nm, tx, ph });
-          prequal += 1;
+          prequal += 1; dayset.add(pqDay);
+          pquals.push(rec);
         }
       }
       return {
-        members, warmTransfers, prequal, days: dayset.size, people, leads, transfers,
+        members, warmTransfers, prequal, days: dayset.size, people, leads, transfers, pquals,
         goalTop: Math.floor(members / GOAL_TOP), goalOptimal: Math.floor(members / GOAL_OPTIMAL), goalMin: Math.floor(members / GOAL_MIN)
       };
     }
@@ -1369,28 +1387,27 @@ function renderLoading() {
         </div>`;
       };
 
-      // Juan's lead breakdown (his warm transfers + text credits) with the amount he earned per lead.
-      const normName = (s) => String(s || '').trim().toUpperCase().replace(/\s+/g, ' ');
+      // Juan's breakdown — two lists: WARM TRANSFERS (by Created Date, trophy, no $) and PRE-QUALIFIED (by Date Pre-Qualified, with $).
       const jForfeit = jBand.total === 0;
       const escapeAttr = (s) => String(s).replace(/"/g, '&quot;');
       const jTag = (bg, fg, bd, txt) => `<span style="display:inline-block;padding:0 6px;border-radius:8px;background:${bg};color:${fg};${bd ? 'border:1px solid ' + bd + ';' : ''}font-size:8px;font-weight:bold;vertical-align:1px;">${txt}</span>`;
-      const jDetail = [];
-      // Driven by the WARM TRANSFERS report (every row has its Lead Status / URL / reasons / notes).
-      // 1. Warm transfers Juan PHONE-sourced.
-      a.transfers.filter(T => T.ph === MANAGER).forEach(T => {
-        const isPQ = T.isPQ;
-        if (isPQ && T.tx !== MANAGER) {
-          jDetail.push({ name: T.name, url: T.url, status: T.status, term: T.term, nurture: T.nurture, notes: T.notes, earned: jBand.phoneShare, pq: true, tag: jTag('var(--gs-gold)', 'var(--gs-dark-green)', '', 'CALL'), note: 'texted by ' + T.tx });
-        } else {
-          jDetail.push({ name: T.name, url: T.url, status: T.status, term: T.term, nurture: T.nurture, notes: T.notes, earned: isPQ ? jBand.total : 0, pq: isPQ, tag: '', note: '' });
-        }
+      const jNameCell = (d) => /^https?:\/\//i.test(d.url)
+        ? `<a href="${escapeAttr(d.url)}" target="_blank" rel="noopener" style="color:var(--gs-dark-green);text-decoration:underline;">${d.name}</a>`
+        : `<span style="color:var(--gs-dark-green);">${d.name}</span>`;
+
+      // WARM TRANSFERS Juan phone-sourced (by Created Date). Trophy marks pre-qualified. No $.
+      const jWt = a.transfers.filter(T => T.ph === MANAGER);
+      // PRE-QUALIFIED (by Date Pre-Qualified): SELF/CALL + text credits. With $. No trophy (all pre-qualified).
+      const jPq = [];
+      a.pquals.filter(T => T.ph === MANAGER).forEach(T => {
+        if (T.tx !== MANAGER) jPq.push({ ...T, earned: jBand.phoneShare, tag: jTag('var(--gs-gold)', 'var(--gs-dark-green)', '', 'CALL'), note: 'texted by ' + T.tx });
+        else                  jPq.push({ ...T, earned: jBand.total, tag: '', note: '' });
       });
-      // 2. TEXT CREDIT: warm transfers Juan TEXTED that someone else phone-sourced (pre-qualified only).
-      a.transfers.filter(T => T.tx === MANAGER && T.ph !== MANAGER && T.isPQ).forEach(T => {
+      a.pquals.filter(T => T.tx === MANAGER && T.ph !== MANAGER).forEach(T => {
         const earned = jForfeit ? 0 : (bandOf[T.ph] || bandFor(0, 0)).textShare;
-        jDetail.push({ name: T.name, url: T.url, status: T.status, term: T.term, nurture: T.nurture, notes: T.notes, earned, pq: true, tag: jTag('var(--gs-cream)', 'var(--gs-dark-green)', 'var(--gs-gold)', 'TEXT CREDIT'), note: 'called by ' + T.ph });
+        jPq.push({ ...T, earned, tag: jTag('var(--gs-cream)', 'var(--gs-dark-green)', 'var(--gs-gold)', 'TEXT CREDIT'), note: 'called by ' + T.ph });
       });
-      const jShownEarned = jDetail.reduce((s, d) => s + d.earned, 0);
+      const jPqEarned = jPq.reduce((s, d) => s + d.earned, 0);
 
       return wrapCard(`
         ${renderHeader('Manager Pay', 'Juan \u00b7 confidential')}
@@ -1462,27 +1479,34 @@ function renderLoading() {
         </div>
 
         <div class="section">
-          <h2>LEAD BREAKDOWN \u00b7 ${jDetail.length} \u00b7 earned ${fmtUSD(jShownEarned)}</h2>
-          ${jDetail.length > 0 ? `
-          <table style="width:100%;border-collapse:collapse;font-size:12px;">
-            <thead><tr><th style="text-align:left;">LEAD</th><th style="text-align:left;">LEAD STATUS</th><th style="text-align:left;">REASON FOR TERMINATION</th><th style="text-align:left;">REASON FOR NURTURE</th><th style="text-align:left;">CLOSER'S NOTES</th><th class="num">EARNED</th></tr></thead>
-            <tbody>
-              ${jDetail.map(d => {
-                const isLink = /^https?:\/\//i.test(d.url);
-                const nameCell = isLink
-                  ? `<a href="${escapeAttr(d.url)}" target="_blank" rel="noopener" style="color:var(--gs-dark-green);text-decoration:underline;">${d.name}</a>`
-                  : `<span style="color:var(--gs-dark-green);">${d.name}</span>`;
-                return `<tr>
-                  <td style="padding:5px 8px;border-bottom:1px solid #EFEADD;">${d.pq ? '<span title="Pre-qualified">\uD83C\uDFC6</span> ' : ''}${nameCell} ${d.tag}${d.note ? ' <span style="color:var(--gs-faint);font-size:9px;">' + d.note + '</span>' : ''}</td>
-                  <td style="padding:5px 8px;color:var(--gs-faint);font-size:11px;border-bottom:1px solid #EFEADD;">${d.status || ''}</td>
-                  <td style="padding:5px 8px;color:var(--gs-faint);font-size:11px;border-bottom:1px solid #EFEADD;">${d.term || ''}</td>
-                  <td style="padding:5px 8px;color:var(--gs-faint);font-size:11px;border-bottom:1px solid #EFEADD;">${d.nurture || ''}</td>
-                  <td style="padding:5px 8px;color:var(--gs-faint);font-size:11px;border-bottom:1px solid #EFEADD;">${d.notes || ''}</td>
-                  <td class="num" style="padding:5px 8px;text-align:right;border-bottom:1px solid #EFEADD;">${fmtUSD(d.earned)}</td>
-                </tr>`;
-              }).join('')}
-            </tbody>
-          </table>` : `<div class="empty-state">No warm transfers for Juan in this period.</div>`}
+          <h2>LEAD BREAKDOWN</h2>
+          <div onclick="toggleSub('jwt')" style="cursor:pointer;font-family:var(--font-display);font-size:10px;letter-spacing:1px;color:var(--gs-gold);font-weight:bold;padding:4px 0;"><span id="arw_jwt">\u25B8</span> WARM TRANSFERS \u00b7 ${jWt.length}</div>
+          <div id="jwt" style="display:none;">
+            ${jWt.length ? `<table style="width:100%;border-collapse:collapse;font-size:12px;">
+              <thead><tr><th style="text-align:left;">LEAD</th><th style="text-align:left;">LEAD STATUS</th><th style="text-align:left;">REASON FOR TERMINATION</th><th style="text-align:left;">REASON FOR NURTURE</th><th style="text-align:left;">CLOSER'S NOTES</th></tr></thead>
+              <tbody>${jWt.map(d => `<tr>
+                <td style="padding:5px 8px;border-bottom:1px solid #EFEADD;">${d.isPQ ? '<span title="Pre-qualified">\uD83C\uDFC6</span> ' : ''}${jNameCell(d)}</td>
+                <td style="padding:5px 8px;color:var(--gs-faint);font-size:11px;border-bottom:1px solid #EFEADD;">${d.status || ''}</td>
+                <td style="padding:5px 8px;color:var(--gs-faint);font-size:11px;border-bottom:1px solid #EFEADD;">${d.term || ''}</td>
+                <td style="padding:5px 8px;color:var(--gs-faint);font-size:11px;border-bottom:1px solid #EFEADD;">${d.nurture || ''}</td>
+                <td style="padding:5px 8px;color:var(--gs-faint);font-size:11px;border-bottom:1px solid #EFEADD;">${d.notes || ''}</td>
+              </tr>`).join('')}</tbody>
+            </table>` : `<div class="empty-state">No warm transfers for Juan in this period.</div>`}
+          </div>
+          <div onclick="toggleSub('jpq')" style="cursor:pointer;font-family:var(--font-display);font-size:10px;letter-spacing:1px;color:var(--gs-gold);font-weight:bold;padding:4px 0;margin-top:8px;"><span id="arw_jpq">\u25B8</span> PRE-QUALIFIED \u00b7 ${jPq.length} \u00b7 earned ${fmtUSD(jPqEarned)}</div>
+          <div id="jpq" style="display:none;">
+            ${jPq.length ? `<table style="width:100%;border-collapse:collapse;font-size:12px;">
+              <thead><tr><th style="text-align:left;">LEAD</th><th style="text-align:left;">LEAD STATUS</th><th style="text-align:left;">REASON FOR TERMINATION</th><th style="text-align:left;">REASON FOR NURTURE</th><th style="text-align:left;">CLOSER'S NOTES</th><th class="num">EARNED</th></tr></thead>
+              <tbody>${jPq.map(d => `<tr>
+                <td style="padding:5px 8px;border-bottom:1px solid #EFEADD;">${jNameCell(d)} ${d.tag}${d.note ? ' <span style="color:var(--gs-faint);font-size:9px;">' + d.note + '</span>' : ''}</td>
+                <td style="padding:5px 8px;color:var(--gs-faint);font-size:11px;border-bottom:1px solid #EFEADD;">${d.status || ''}</td>
+                <td style="padding:5px 8px;color:var(--gs-faint);font-size:11px;border-bottom:1px solid #EFEADD;">${d.term || ''}</td>
+                <td style="padding:5px 8px;color:var(--gs-faint);font-size:11px;border-bottom:1px solid #EFEADD;">${d.nurture || ''}</td>
+                <td style="padding:5px 8px;color:var(--gs-faint);font-size:11px;border-bottom:1px solid #EFEADD;">${d.notes || ''}</td>
+                <td class="num" style="padding:5px 8px;text-align:right;border-bottom:1px solid #EFEADD;">${fmtUSD(d.earned)}</td>
+              </tr>`).join('')}</tbody>
+            </table>` : `<div class="empty-state">No pre-qualified leads for Juan in this period.</div>`}
+          </div>
         </div>
 
         ${renderFooter()}
