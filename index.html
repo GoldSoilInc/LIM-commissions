@@ -1397,12 +1397,13 @@ function renderLoading() {
           </tr>`).join('')}
         </table>`;
 
-        const subHead = (id, label) => `<div onclick="toggleSub('${id}')" style="cursor:pointer;font-family:var(--font-display);font-size:9.5px;letter-spacing:1px;color:var(--gs-gold);font-weight:bold;padding:4px 0;"><span id="arw_${id}">\u25B8</span> ${label}</div>`;
+        const subHead = (id, label) => `<span onclick="event.stopPropagation();toggleSub('${id}')" style="cursor:pointer; display:inline-flex; align-items:center; gap:6px; font-family:var(--font-display); font-size:10px; letter-spacing:0.5px; color:var(--gs-dark-green); font-weight:bold; background:var(--gs-cream); border:1px solid var(--gs-gold); border-radius:14px; padding:5px 12px; margin:0 8px 8px 0;"><span id="arw_${id}">\u25B8</span> ${label}</span>`;
 
         const detailRow = hasDetail ? `<tr id="${detailId}" style="display:none;background:#FBF7EC;">
-          <td colspan="${STAR_ENABLED ? 9 : 8}" style="padding:6px 24px 12px 34px;">
-            ${wtRows.length ? subHead('wt_' + idx, 'WARM TRANSFERS \u00b7 ' + wtRows.length) + `<div id="wt_${idx}" style="display:none;">${wtTable}</div>` : ''}
-            ${pqRows.length ? subHead('pq_' + idx, 'PRE-QUALIFIED \u00b7 ' + pqRows.length + ' \u00b7 earned ' + fmtUSD(pqEarned)) + `<div id="pq_${idx}" style="display:none;margin-bottom:2px;">${pqTable}</div>` : ''}
+          <td colspan="${STAR_ENABLED ? 9 : 8}" style="padding:8px 24px 12px 34px;">
+            <div>${wtRows.length ? subHead('wt_' + idx, 'WARM TRANSFERS \u00b7 ' + wtRows.length) : ''}${pqRows.length ? subHead('pq_' + idx, 'PRE-QUALIFIED \u00b7 ' + pqRows.length + ' \u00b7 earned ' + fmtUSD(pqEarned)) : ''}</div>
+            ${wtRows.length ? `<div id="wt_${idx}" style="display:none;">${wtTable}</div>` : ''}
+            ${pqRows.length ? `<div id="pq_${idx}" style="display:none;margin-bottom:2px;">${pqTable}</div>` : ''}
           </td>
         </tr>` : '';
 
