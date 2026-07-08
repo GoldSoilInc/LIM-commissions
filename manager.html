@@ -1480,7 +1480,7 @@ function renderLoading() {
 
         <div class="section">
           <h2>LEAD BREAKDOWN</h2>
-          <div onclick="toggleSub('jwt')" style="cursor:pointer;font-family:var(--font-display);font-size:10px;letter-spacing:1px;color:var(--gs-gold);font-weight:bold;padding:4px 0;"><span id="arw_jwt">\u25B8</span> WARM TRANSFERS \u00b7 ${jWt.length}</div>
+          <div style="margin-bottom:4px;"><span onclick="toggleSub('jwt')" style="cursor:pointer; display:inline-flex; align-items:center; gap:6px; font-family:var(--font-display); font-size:10px; letter-spacing:0.5px; color:var(--gs-dark-green); font-weight:bold; background:var(--gs-cream); border:1px solid var(--gs-gold); border-radius:14px; padding:5px 12px; margin:0 8px 8px 0;"><span id="arw_jwt">\u25B8</span> WARM TRANSFERS \u00b7 ${jWt.length}</span><span onclick="toggleSub('jpq')" style="cursor:pointer; display:inline-flex; align-items:center; gap:6px; font-family:var(--font-display); font-size:10px; letter-spacing:0.5px; color:var(--gs-dark-green); font-weight:bold; background:var(--gs-cream); border:1px solid var(--gs-gold); border-radius:14px; padding:5px 12px; margin:0 8px 8px 0;"><span id="arw_jpq">\u25B8</span> PRE-QUALIFIED \u00b7 ${jPq.length} \u00b7 earned ${fmtUSD(jPqEarned)}</span></div>
           <div id="jwt" style="display:none;">
             ${jWt.length ? `<table style="width:100%;border-collapse:collapse;font-size:12px;">
               <thead><tr><th style="text-align:left;">LEAD</th><th style="text-align:left;">LEAD STATUS</th><th style="text-align:left;">REASON FOR TERMINATION</th><th style="text-align:left;">REASON FOR NURTURE</th><th style="text-align:left;">CLOSER'S NOTES</th></tr></thead>
@@ -1493,7 +1493,6 @@ function renderLoading() {
               </tr>`).join('')}</tbody>
             </table>` : `<div class="empty-state">No warm transfers for Juan in this period.</div>`}
           </div>
-          <div onclick="toggleSub('jpq')" style="cursor:pointer;font-family:var(--font-display);font-size:10px;letter-spacing:1px;color:var(--gs-gold);font-weight:bold;padding:4px 0;margin-top:8px;"><span id="arw_jpq">\u25B8</span> PRE-QUALIFIED \u00b7 ${jPq.length} \u00b7 earned ${fmtUSD(jPqEarned)}</div>
           <div id="jpq" style="display:none;">
             ${jPq.length ? `<table style="width:100%;border-collapse:collapse;font-size:12px;">
               <thead><tr><th style="text-align:left;">LEAD</th><th style="text-align:left;">LEAD STATUS</th><th style="text-align:left;">REASON FOR TERMINATION</th><th style="text-align:left;">REASON FOR NURTURE</th><th style="text-align:left;">CLOSER'S NOTES</th><th class="num">EARNED</th></tr></thead>
