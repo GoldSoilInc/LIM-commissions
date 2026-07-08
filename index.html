@@ -1113,6 +1113,16 @@ function renderLoading() {
       if (c) c.textContent = open ? '\u25B8' : '\u25BE';
     };
 
+    // Toggle a sub-list (Warm Transfers / Pre-Qualified) inside an expanded person row.
+    window.toggleSub = function (id) {
+      const el = document.getElementById(id);
+      const a = document.getElementById('arw_' + id);
+      if (!el) return;
+      const open = el.style.display !== 'none';
+      el.style.display = open ? 'none' : 'block';
+      if (a) a.textContent = open ? '\u25B8' : '\u25BE';
+    };
+
     // A week belongs to the month of its Monday. For the month that owns `refDate`'s week,
     // return the first owned Monday, the last owned Monday, and that last week's end (Sunday).
     function monthOwnedWindow(refDate) {
@@ -1146,7 +1156,8 @@ function renderLoading() {
       let members = 0, warmTransfers = 0, prequal = 0;
       const dayset = new Set();
       const leads = [];      // per pre-qualified lead: { name, tx, ph }  (drives pay)
-      const transfers = [];  // per warm transfer: { name, status, url, tx, ph }  (drives the expand list)
+      const transfers = [];  // warm transfers, bucketed by Created Date (drives the WARM TRANSFERS expand list)
+      const pquals = [];     // pre-qualified leads, bucketed by Date Pre-Qualified (drives the PRE-QUALIFIED expand list + pay)
 
       for (const r of CAMPAIGN_ROWS) {
         const o = (r[CM_OWNER] || '').trim(); const dt = normDate(r[CM_DATE], CM_SHIFT);
@@ -1156,25 +1167,32 @@ function renderLoading() {
       }
       for (const r of TRANSFER_ROWS) {
         const tx = (r[WT_TEXT] || '').trim(); const ph = (r[WT_PHONE] || '').trim() || tx;
-        const dt = normDate(r[WT_DATE], WT_SHIFT);
-        if (dt < f || dt > tISO) continue;
-        if (tx) ensure(tx).warmT += 1;
-        if (ph) ensure(ph).warmTPhone += 1;
+        const created = normDate(r[WT_DATE], WT_SHIFT);
         const nm = [r[WT_NAME]].map(v => String(v || '').trim()).filter(v => v && !/^[-\u2013\u2014.\s]+$/.test(v)).join(' ') || '(unnamed lead)';
-        // "Pre-qualified" = the Date Pre-Qualified cell (col L) has any value. Warm Transfers is the single source of truth.
-        const pqDate = String(r[WT_PQDATE] || '').trim();
-        const isPQ = pqDate !== '' && !/^[-\u2013\u2014.\s]+$/.test(pqDate);   // a placeholder dash ("-") means NOT pre-qualified
-        transfers.push({ name: nm, status: String(r[WT_STATUS] || '').trim(), url: String(r[WT_URL] || '').trim(), term: String(r[WT_TERM] || '').trim(), nurture: String(r[WT_NURTURE] || '').trim(), notes: String(r[WT_NOTES] || '').trim(), tx, ph, pqDate, isPQ });
-        warmTransfers += 1; dayset.add(dt);
-        if (isPQ) {
+        const pqRaw = String(r[WT_PQDATE] || '').trim();
+        const isPQ = pqRaw !== '' && !/^[-\u2013\u2014.\s]+$/.test(pqRaw);   // real date in Date Pre-Qualified (col L); "-"/blank = NOT pre-qualified
+        const pqDay = isPQ ? normDate(r[WT_PQDATE], PQ_SHIFT) : '';           // the date it was pre-qualified (col L)
+        const rec = { name: nm, status: String(r[WT_STATUS] || '').trim(), url: String(r[WT_URL] || '').trim(), term: String(r[WT_TERM] || '').trim(), nurture: String(r[WT_NURTURE] || '').trim(), notes: String(r[WT_NOTES] || '').trim(), tx, ph, pqDate: pqRaw, isPQ };
+
+        // WARM TRANSFERS side — bucketed by Created Date (col A).
+        if (created >= f && created <= tISO) {
+          if (tx) ensure(tx).warmT += 1;
+          if (ph) ensure(ph).warmTPhone += 1;
+          warmTransfers += 1; dayset.add(created);
+          transfers.push(rec);
+        }
+        // PRE-QUALIFIED side — bucketed by Date Pre-Qualified (col L), so a lead warm-transferred
+        // earlier but pre-qualified in this period still counts (e.g. inbound calls on older transfers).
+        if (isPQ && pqDay >= f && pqDay <= tISO) {
           if (tx) ensure(tx).pqText += 1;
           ensure(ph).pqPhone += 1;
           leads.push({ name: nm, tx, ph });
-          prequal += 1;
+          prequal += 1; dayset.add(pqDay);
+          pquals.push(rec);
         }
       }
       return {
-        members, warmTransfers, prequal, days: dayset.size, people, leads, transfers,
+        members, warmTransfers, prequal, days: dayset.size, people, leads, transfers, pquals,
         goalTop: Math.floor(members / GOAL_TOP), goalOptimal: Math.floor(members / GOAL_OPTIMAL), goalMin: Math.floor(members / GOAL_MIN)
       };
     }
@@ -1295,23 +1313,28 @@ function renderLoading() {
       const teamTotal = teamBase + wb.teamTotal + starBonusTotal;
 
       // Per-person warm transfers (by phone sourcer) for the expandable detail list.
+      // Warm transfers (by Created Date) indexed by sourcer — drives the WARM TRANSFERS sub-list.
       const transfersByPhone = {}, transfersByText = {};
       a.transfers.forEach(T => {
         (transfersByPhone[T.ph] = transfersByPhone[T.ph] || []).push(T);
         (transfersByText[T.tx] = transfersByText[T.tx] || []).push(T);
       });
+      // Pre-qualified leads (by Date Pre-Qualified) indexed by sourcer — drives the PRE-QUALIFIED sub-list + $.
+      const pqByPhone = {}, pqByText = {};
+      a.pquals.forEach(T => {
+        (pqByPhone[T.ph] = pqByPhone[T.ph] || []).push(T);
+        (pqByText[T.tx] = pqByText[T.tx] || []).push(T);
+      });
 
-      // Match warm transfers <-> pre-qualified leads (only pre-qualified leads earn) by name + sourcers.
-      const normName = (s) => String(s || '').trim().toUpperCase().replace(/\s+/g, ' ');
+      const escAttr = (s) => String(s).replace(/"/g, '&quot;');
+      const nameCell = (d) => /^https?:\/\//i.test(d.url)
+        ? `<a href="${escAttr(d.url)}" target="_blank" rel="noopener" style="color:var(--gs-dark-green);text-decoration:underline;">${d.name}</a>`
+        : `<span style="color:var(--gs-dark-green);">${d.name}</span>`;
+      const cellHead = (t, right) => `<th style="text-align:${right ? 'right' : 'left'};padding:2px 8px;font-size:8.5px;color:var(--gs-gold);">${t}</th>`;
+      const reasonTd = (v) => `<td style="padding:4px 8px;color:var(--gs-faint);font-size:10px;border-bottom:1px solid #EFEADD;">${v || ''}</td>`;
 
-      // Grouped by person. Each block: a primary (self) row carrying the person's
-      // members/ratio/weekly/star/total, then CALL rows (their call-rate share for leads they
-      // pre-qualified that someone else texted) and TEXT CREDIT rows (their text-rate share for
-      // leads they texted that someone else called). Every block totals the person's true paycheck.
-      // One summary row per person (click to expand a per-lead breakdown). Columns:
-      // SOURCER | MEMBERS | PRE-QUALIFIED | RATIO | PRE-QUALIFY $ | WEEKLY BONUS $ | STAR $ | TOTAL $
       const rows = names.map((n, idx) => {
-        const p = a.people[n] || { members: 0, warmT: 0, warmTPhone: 0, pqText: 0, pqPhone: 0, phones: {}, texts: {} };
+        const p = a.people[n] || { members: 0, warmT: 0, warmTPhone: 0, pqText: 0, pqPhone: 0 };
         const isStar = n === star.name && starShow;
         const band = bandOf[n];
         const weekly = wb.bonusFor(n);
@@ -1322,35 +1345,26 @@ function renderLoading() {
         const hasActivity = ROSTER.includes(n) || p.members > 0 || p.pqPhone > 0 || p.pqText > 0;
         const edge = 'border-bottom:1px solid #EFEADD;';
         const starTag = isStar ? ` <span style="display:inline-block;padding:1px 7px;border-radius:9px;background:var(--gs-dark-green);color:var(--gs-gold);font-family:var(--font-body);font-size:9px;font-weight:bold;letter-spacing:0.5px;vertical-align:1px;">\u2605 STAR +$50</span>` : '';
-
-        // Expandable detail: only cross-sourced leads — CALL (they called a lead someone else texted)
-        // and TEXT CREDIT (they texted a lead someone else called). SELF and non-pre-qualified are omitted.
-        const escapeAttr = (s) => String(s).replace(/"/g, '&quot;');
         const forfeited = band.total === 0;   // own ratio >800 -> earns nothing
         const tagPill = (bg, fg, bd, txt) => `<span style="display:inline-block;padding:0 6px;border-radius:8px;background:${bg};color:${fg};${bd ? 'border:1px solid ' + bd + ';' : ''}font-size:8px;font-weight:bold;vertical-align:1px;">${txt}</span>`;
-        const detail = [];
-        // Driven by the WARM TRANSFERS report. Every row is a warm-transfer record, so its Lead Status,
-        // URL and reason/notes columns are always present. Earned amount is looked up from PreQualified.
-        // 1. Warm transfers this person PHONE-sourced.
-        (transfersByPhone[n] || []).forEach(T => {
-          const isPQ = T.isPQ;
-          if (isPQ && T.tx !== n) {
-            detail.push({ name: T.name, url: T.url, status: T.status, term: T.term, nurture: T.nurture, notes: T.notes, earned: band.phoneShare, pq: true, tag: tagPill('var(--gs-gold)', 'var(--gs-dark-green)', '', 'CALL'), note: 'texted by ' + T.tx });
-          } else {
-            // SELF (pre-qualified, own text+call) -> full band; nurture (not pre-qualified) -> $0. Both unlabeled.
-            detail.push({ name: T.name, url: T.url, status: T.status, term: T.term, nurture: T.nurture, notes: T.notes, earned: isPQ ? band.total : 0, pq: isPQ, tag: '', note: '' });
-          }
+
+        // --- WARM TRANSFERS sub-list: this person's phone-sourced warm transfers (by Created Date). Trophy on pre-qualified. No $.
+        const wtRows = (transfersByPhone[n] || []);
+        // --- PRE-QUALIFIED sub-list: pre-qualified leads (by Date Pre-Qualified). SELF/CALL + text credits. With $. No trophy (all pre-qualified).
+        const pqRows = [];
+        (pqByPhone[n] || []).forEach(T => {
+          if (T.tx !== n) pqRows.push({ ...T, earned: band.phoneShare, tag: tagPill('var(--gs-gold)', 'var(--gs-dark-green)', '', 'CALL'), note: 'texted by ' + T.tx });
+          else            pqRows.push({ ...T, earned: band.total, tag: '', note: '' });   // SELF (own text + call)
         });
-        // 2. TEXT CREDIT: warm transfers this person TEXTED that someone else phone-sourced (pre-qualified only).
-        (transfersByText[n] || []).forEach(T => {
-          if (T.ph === n || !T.isPQ) return;   // self handled above; only pre-qualified earn a text credit
+        (pqByText[n] || []).forEach(T => {
+          if (T.ph === n) return;   // self already counted on the phone side
           const earned = forfeited ? 0 : (bandOf[T.ph] || bandFor(0, 0)).textShare;
-          detail.push({ name: T.name, url: T.url, status: T.status, term: T.term, nurture: T.nurture, notes: T.notes, earned, pq: true, tag: tagPill('var(--gs-cream)', 'var(--gs-dark-green)', 'var(--gs-gold)', 'TEXT CREDIT'), note: 'called by ' + T.ph });
+          pqRows.push({ ...T, earned, tag: tagPill('var(--gs-cream)', 'var(--gs-dark-green)', 'var(--gs-gold)', 'TEXT CREDIT'), note: 'called by ' + T.ph });
         });
-        const shownEarned = detail.reduce((s, d) => s + d.earned, 0);
+        const pqEarned = pqRows.reduce((s, d) => s + d.earned, 0);
 
         const detailId = 'lead_' + idx;
-        const hasDetail = detail.length > 0;
+        const hasDetail = wtRows.length > 0 || pqRows.length > 0;
         const caret = hasDetail ? `<span id="c_${detailId}" style="color:var(--gs-gold);font-weight:bold;margin-right:4px;">\u25B8</span>` : '<span style="margin-right:4px;opacity:0;">\u25B8</span>';
         const summaryRow = `<tr style="${isStar ? 'background:#EBD88C;' : 'background:#FFFFFF;'}${edge}${hasDetail ? 'cursor:pointer;' : ''}"${hasDetail ? ` onclick="toggleLeads('${detailId}')"` : ''}>
           <td class="label"${isStar ? ' style="font-weight:bold;color:var(--gs-dark-green);"' : ''}>${caret}${hasActivity ? n : '\u2014'}${starTag}</td>
@@ -1364,33 +1378,31 @@ function renderLoading() {
           <td class="num gold">${fmtUSD(personTotal)}</td>
         </tr>`;
 
+        // Warm Transfers table (trophy marks pre-qualified; no $)
+        const wtTable = `<table style="width:100%;border-collapse:collapse;font-size:11px;">
+          <thead><tr>${cellHead('LEAD')}${cellHead('LEAD STATUS')}${cellHead('REASON FOR TERMINATION')}${cellHead('REASON FOR NURTURE')}${cellHead("CLOSER'S NOTES")}</tr></thead>
+          ${wtRows.map(d => `<tr>
+            <td style="padding:4px 8px;border-bottom:1px solid #EFEADD;">${d.isPQ ? '<span title="Pre-qualified">\uD83C\uDFC6</span> ' : ''}${nameCell(d)}</td>
+            ${reasonTd(d.status)}${reasonTd(d.term)}${reasonTd(d.nurture)}${reasonTd(d.notes)}
+          </tr>`).join('')}
+        </table>`;
+
+        // Pre-Qualified table (CALL / TEXT CREDIT labels + $; no trophy since all are pre-qualified)
+        const pqTable = `<table style="width:100%;border-collapse:collapse;font-size:11px;">
+          <thead><tr>${cellHead('LEAD')}${cellHead('LEAD STATUS')}${cellHead('REASON FOR TERMINATION')}${cellHead('REASON FOR NURTURE')}${cellHead("CLOSER'S NOTES")}${cellHead('EARNED', true)}</tr></thead>
+          ${pqRows.map(d => `<tr>
+            <td style="padding:4px 8px;border-bottom:1px solid #EFEADD;">${nameCell(d)} ${d.tag}${d.note ? ' <span style="color:var(--gs-faint);font-size:9px;">' + d.note + '</span>' : ''}</td>
+            ${reasonTd(d.status)}${reasonTd(d.term)}${reasonTd(d.nurture)}${reasonTd(d.notes)}
+            <td class="num" style="padding:4px 8px;text-align:right;border-bottom:1px solid #EFEADD;">${fmtUSD(d.earned)}</td>
+          </tr>`).join('')}
+        </table>`;
+
+        const subHead = (id, label) => `<div onclick="toggleSub('${id}')" style="cursor:pointer;font-family:var(--font-display);font-size:9.5px;letter-spacing:1px;color:var(--gs-gold);font-weight:bold;padding:4px 0;"><span id="arw_${id}">\u25B8</span> ${label}</div>`;
+
         const detailRow = hasDetail ? `<tr id="${detailId}" style="display:none;background:#FBF7EC;">
           <td colspan="${STAR_ENABLED ? 9 : 8}" style="padding:6px 24px 12px 34px;">
-            <div style="font-family:var(--font-display); font-size:9px; letter-spacing:1px; color:var(--gs-gold); font-weight:bold; padding-bottom:4px;">LEADS \u00b7 ${detail.length} \u00b7 earned ${fmtUSD(shownEarned)}</div>
-            <table style="width:100%;border-collapse:collapse;font-size:11px;">
-              <thead><tr>
-                <th style="text-align:left;padding:2px 8px;font-size:8.5px;color:var(--gs-gold);">LEAD</th>
-                <th style="text-align:left;padding:2px 8px;font-size:8.5px;color:var(--gs-gold);">LEAD STATUS</th>
-                <th style="text-align:left;padding:2px 8px;font-size:8.5px;color:var(--gs-gold);">REASON FOR TERMINATION</th>
-                <th style="text-align:left;padding:2px 8px;font-size:8.5px;color:var(--gs-gold);">REASON FOR NURTURE</th>
-                <th style="text-align:left;padding:2px 8px;font-size:8.5px;color:var(--gs-gold);">CLOSER'S NOTES</th>
-                <th style="text-align:right;padding:2px 8px;font-size:8.5px;color:var(--gs-gold);">EARNED</th>
-              </tr></thead>
-              ${detail.map(d => {
-                const isLink = /^https?:\/\//i.test(d.url);
-                const nameCell = isLink
-                  ? `<a href="${escapeAttr(d.url)}" target="_blank" rel="noopener" style="color:var(--gs-dark-green);text-decoration:underline;">${d.name}</a>`
-                  : `<span style="color:var(--gs-dark-green);">${d.name}</span>`;
-                return `<tr>
-                  <td style="padding:4px 8px;border-bottom:1px solid #EFEADD;">${d.pq ? '<span title="Pre-qualified">\uD83C\uDFC6</span> ' : ''}${nameCell} ${d.tag}${d.note ? ' <span style="color:var(--gs-faint);font-size:9px;">' + d.note + '</span>' : ''}</td>
-                  <td style="padding:4px 8px;color:var(--gs-faint);font-size:10px;border-bottom:1px solid #EFEADD;">${d.status || ''}</td>
-                  <td style="padding:4px 8px;color:var(--gs-faint);font-size:10px;border-bottom:1px solid #EFEADD;">${d.term || ''}</td>
-                  <td style="padding:4px 8px;color:var(--gs-faint);font-size:10px;border-bottom:1px solid #EFEADD;">${d.nurture || ''}</td>
-                  <td style="padding:4px 8px;color:var(--gs-faint);font-size:10px;border-bottom:1px solid #EFEADD;">${d.notes || ''}</td>
-                  <td class="num" style="padding:4px 8px;text-align:right;border-bottom:1px solid #EFEADD;">${fmtUSD(d.earned)}</td>
-                </tr>`;
-              }).join('')}
-            </table>
+            ${wtRows.length ? subHead('wt_' + idx, 'WARM TRANSFERS \u00b7 ' + wtRows.length) + `<div id="wt_${idx}" style="display:none;">${wtTable}</div>` : ''}
+            ${pqRows.length ? subHead('pq_' + idx, 'PRE-QUALIFIED \u00b7 ' + pqRows.length + ' \u00b7 earned ' + fmtUSD(pqEarned)) + `<div id="pq_${idx}" style="display:none;margin-bottom:2px;">${pqTable}</div>` : ''}
           </td>
         </tr>` : '';
 
