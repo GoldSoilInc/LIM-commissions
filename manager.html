@@ -1138,6 +1138,20 @@ function renderLoading() {
       if (c) c.textContent = open ? '\u25B8' : '\u25BE';
     };
 
+    // Toggle a Warm Transfers / Pre-Qualified box. Only one open at a time; arrow down (closed) / up (open).
+    window.toggleOne = function (id) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const isOpen = el.style.display !== 'none';
+      document.querySelectorAll('.lead-box').forEach(r => { r.style.display = 'none'; });
+      document.querySelectorAll('.lead-arw').forEach(a => { a.textContent = '\u25BE'; });
+      if (!isOpen) {
+        el.style.display = (el.tagName === 'TR') ? 'table-row' : 'block';
+        const a = document.getElementById('c_' + id) || document.getElementById('arw_' + id);
+        if (a) a.textContent = '\u25B4';
+      }
+    };
+
     // Toggle a sub-list (Warm Transfers / Pre-Qualified) inside the breakdown.
     window.toggleSub = function (id) {
       const el = document.getElementById(id);
@@ -1480,8 +1494,8 @@ function renderLoading() {
 
         <div class="section">
           <h2>LEAD BREAKDOWN</h2>
-          <div style="margin-bottom:4px;"><span onclick="toggleSub('jwt')" style="cursor:pointer; display:inline-flex; align-items:center; gap:6px; font-family:var(--font-display); font-size:10px; letter-spacing:0.5px; color:var(--gs-dark-green); font-weight:bold; background:var(--gs-cream); border:1px solid var(--gs-gold); border-radius:14px; padding:5px 12px; margin:0 8px 8px 0;"><span id="arw_jwt">\u25B8</span> WARM TRANSFERS \u00b7 ${jWt.length}</span><span onclick="toggleSub('jpq')" style="cursor:pointer; display:inline-flex; align-items:center; gap:6px; font-family:var(--font-display); font-size:10px; letter-spacing:0.5px; color:var(--gs-dark-green); font-weight:bold; background:var(--gs-cream); border:1px solid var(--gs-gold); border-radius:14px; padding:5px 12px; margin:0 8px 8px 0;"><span id="arw_jpq">\u25B8</span> PRE-QUALIFIED \u00b7 ${jPq.length} \u00b7 earned ${fmtUSD(jPqEarned)}</span></div>
-          <div id="jwt" style="display:none;">
+          <div style="margin-bottom:4px;"><span onclick="toggleOne('jwt')" style="cursor:pointer; display:inline-flex; align-items:center; gap:6px; font-family:var(--font-display); font-size:10px; letter-spacing:0.5px; color:var(--gs-dark-green); font-weight:bold; background:var(--gs-cream); border:1px solid var(--gs-gold); border-radius:14px; padding:5px 12px; margin:0 8px 8px 0;"><span id="arw_jwt" class="lead-arw">\u25BE</span> WARM TRANSFERS \u00b7 ${jWt.length}</span><span onclick="toggleOne('jpq')" style="cursor:pointer; display:inline-flex; align-items:center; gap:6px; font-family:var(--font-display); font-size:10px; letter-spacing:0.5px; color:var(--gs-dark-green); font-weight:bold; background:var(--gs-cream); border:1px solid var(--gs-gold); border-radius:14px; padding:5px 12px; margin:0 8px 8px 0;"><span id="arw_jpq" class="lead-arw">\u25BE</span> PRE-QUALIFIED \u00b7 ${jPq.length} \u00b7 earned ${fmtUSD(jPqEarned)}</span></div>
+          <div id="jwt" class="lead-box" style="display:none;">
             ${jWt.length ? `<table style="width:100%;border-collapse:collapse;font-size:12px;">
               <thead><tr><th style="text-align:left;">LEAD</th><th style="text-align:left;">LEAD STATUS</th><th style="text-align:left;">REASON FOR TERMINATION</th><th style="text-align:left;">REASON FOR NURTURE</th><th style="text-align:left;">CLOSER'S NOTES</th></tr></thead>
               <tbody>${jWt.map(d => `<tr>
@@ -1493,7 +1507,7 @@ function renderLoading() {
               </tr>`).join('')}</tbody>
             </table>` : `<div class="empty-state">No warm transfers for Juan in this period.</div>`}
           </div>
-          <div id="jpq" style="display:none;">
+          <div id="jpq" class="lead-box" style="display:none;">
             ${jPq.length ? `<table style="width:100%;border-collapse:collapse;font-size:12px;">
               <thead><tr><th style="text-align:left;">LEAD</th><th style="text-align:left;">LEAD STATUS</th><th style="text-align:left;">REASON FOR TERMINATION</th><th style="text-align:left;">REASON FOR NURTURE</th><th style="text-align:left;">CLOSER'S NOTES</th><th class="num">EARNED</th></tr></thead>
               <tbody>${jPq.map(d => `<tr>
