@@ -1363,14 +1363,12 @@ function renderLoading() {
         });
         const pqEarned = pqRows.reduce((s, d) => s + d.earned, 0);
 
-        const detailId = 'lead_' + idx;
-        const hasDetail = wtRows.length > 0 || pqRows.length > 0;
-        const caret = hasDetail ? `<span id="c_${detailId}" style="color:var(--gs-gold);font-weight:bold;margin-right:4px;">\u25B8</span>` : '<span style="margin-right:4px;opacity:0;">\u25B8</span>';
-        const summaryRow = `<tr style="${isStar ? 'background:#EBD88C;' : 'background:#FFFFFF;'}${edge}${hasDetail ? 'cursor:pointer;' : ''}"${hasDetail ? ` onclick="toggleLeads('${detailId}')"` : ''}>
-          <td class="label"${isStar ? ' style="font-weight:bold;color:var(--gs-dark-green);"' : ''}>${caret}${hasActivity ? n : '\u2014'}${starTag}</td>
+        const arrow = (rowId) => ` <span id="c_${rowId}" onclick="toggleLeads('${rowId}')" style="cursor:pointer;color:var(--gs-gold);font-weight:bold;user-select:none;" title="Show list">\u25B8</span>`;
+        const summaryRow = `<tr style="${isStar ? 'background:#EBD88C;' : 'background:#FFFFFF;'}${edge}">
+          <td class="label"${isStar ? ' style="font-weight:bold;color:var(--gs-dark-green);"' : ''}>${hasActivity ? n : '\u2014'}${starTag}</td>
           <td class="num">${p.members.toLocaleString('en-US')}</td>
-          <td class="num">${p.warmTPhone}</td>
-          <td class="num highlight">${p.pqPhone}</td>
+          <td class="num">${p.warmTPhone}${wtRows.length ? arrow('wtrow_' + idx) : ''}</td>
+          <td class="num highlight">${p.pqPhone}${pqRows.length ? arrow('pqrow_' + idx) : ''}</td>
           <td class="num">${ratioLabel}</td>
           <td class="num">${fmtUSD(base)}</td>
           <td class="num">${fmtUSD(weekly)}</td>
@@ -1397,17 +1395,20 @@ function renderLoading() {
           </tr>`).join('')}
         </table>`;
 
-        const subHead = (id, label) => `<span onclick="event.stopPropagation();toggleSub('${id}')" style="cursor:pointer; display:inline-flex; align-items:center; gap:6px; font-family:var(--font-display); font-size:10px; letter-spacing:0.5px; color:var(--gs-dark-green); font-weight:bold; background:var(--gs-cream); border:1px solid var(--gs-gold); border-radius:14px; padding:5px 12px; margin:0 8px 8px 0;"><span id="arw_${id}">\u25B8</span> ${label}</span>`;
-
-        const detailRow = hasDetail ? `<tr id="${detailId}" style="display:none;background:#FBF7EC;">
+        const wtDetailRow = wtRows.length ? `<tr id="wtrow_${idx}" style="display:none;background:#FBF7EC;">
           <td colspan="${STAR_ENABLED ? 9 : 8}" style="padding:8px 24px 12px 34px;">
-            <div>${wtRows.length ? subHead('wt_' + idx, 'WARM TRANSFERS \u00b7 ' + wtRows.length) : ''}${pqRows.length ? subHead('pq_' + idx, 'PRE-QUALIFIED \u00b7 ' + pqRows.length + ' \u00b7 earned ' + fmtUSD(pqEarned)) : ''}</div>
-            ${wtRows.length ? `<div id="wt_${idx}" style="display:none;">${wtTable}</div>` : ''}
-            ${pqRows.length ? `<div id="pq_${idx}" style="display:none;margin-bottom:2px;">${pqTable}</div>` : ''}
+            <div style="font-family:var(--font-display);font-size:9px;letter-spacing:1px;color:var(--gs-gold);font-weight:bold;padding-bottom:4px;">WARM TRANSFERS \u00b7 ${wtRows.length}</div>
+            ${wtTable}
+          </td>
+        </tr>` : '';
+        const pqDetailRow = pqRows.length ? `<tr id="pqrow_${idx}" style="display:none;background:#FBF7EC;">
+          <td colspan="${STAR_ENABLED ? 9 : 8}" style="padding:8px 24px 12px 34px;">
+            <div style="font-family:var(--font-display);font-size:9px;letter-spacing:1px;color:var(--gs-gold);font-weight:bold;padding-bottom:4px;">PRE-QUALIFIED \u00b7 ${pqRows.length} \u00b7 earned ${fmtUSD(pqEarned)}</div>
+            ${pqTable}
           </td>
         </tr>` : '';
 
-        return summaryRow + detailRow;
+        return summaryRow + wtDetailRow + pqDetailRow;
       }).join('');
 
       const weekChips = wb.weeks.map(w => {
